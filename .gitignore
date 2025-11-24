@@ -1,0 +1,27 @@
+# Dependencies
+/node_modules
+
+# Production
+/build
+
+# Logs
+/logs
+*.log
+
+# Temporary files
+/tmp
+
+# Environment variables
+.env
+.env.development
+.env.production
+config.json
+
+# IDEs and editors
+.vscode
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
