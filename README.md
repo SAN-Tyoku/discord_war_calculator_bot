@@ -1,6 +1,6 @@
 # WAR Calculator Bot
 
-野球のWAR (Wins Above Replacement) 統計を計算するためのDiscord Botです。
+野球のWARを計算するためのDiscord Botです。
 
 対話形式で選手の成績を入力すると、指定したAPIサーバーと通信して計算結果を返します。計算セッションはスレッド内で行われるため、メインチャンネルが散らかることはありません。
 
