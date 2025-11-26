@@ -54,8 +54,11 @@ module.exports = {
         }
 
         const config = await getGuildConfig(interaction.guildId);
-        if (config.allowed_channels && config.allowed_channels.length > 0) {
-            if (!config.allowed_channels.includes(interaction.channelId)) {
+        const mode = config.channel_mode || 'allow-all';
+
+        if (mode === 'restricted') {
+            const allowed = config.allowed_channels || [];
+            if (!allowed.includes(interaction.channelId)) {
                 await interaction.reply({ content: 'このチャンネルではWAR計算コマンドを使用できません。', ephemeral: true });
                 return;
             }

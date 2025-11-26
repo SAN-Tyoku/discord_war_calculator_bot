@@ -8,7 +8,6 @@ module.exports = {
     async execute(message) {
         if (message.author.bot) return;
 
-        // A. 管理コマンド (!force_war)
         if (message.content.startsWith('!') && message.guild) {
             const isOwner = message.guild.ownerId === message.author.id;
             const isAdmin = message.member?.permissions.has('Administrator');
@@ -31,16 +30,24 @@ module.exports = {
                         return;
                     }
                     const config = await getGuildConfig(message.guildId);
+
+                    const mode = config.channel_mode || 'allow-all';
+                    if (mode === 'restricted') {
+                        const allowed = config.allowed_channels || [];
+                        if (!allowed.includes(message.channelId)) {
+                            logger.warn(`[Access Denied] ${message.author.tag} tried to use !force_war in restricted channel ${message.channel.name}.`);
+                            return; 
+                        }
+                    }
+
                     await startWarSession(message, subCommand, year, league, config);
                     return;
                 }
             }
         }
 
-        // B. 会話モード (スレッド内での数値入力)
         const session = sessions.get(message.channelId);
         if (session) {
-            // 本人以外は無視
             if (message.author.id !== session.userId) return;
 
             const messageContent = message.content.trim();

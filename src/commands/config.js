@@ -43,10 +43,23 @@ module.exports = {
             subcommand
                 .setName('list')
                 .setDescription('Botの使用が許可されているチャンネルの一覧を表示します。')
+        )
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('mode')
+                .setDescription('チャンネルの使用許可モードを設定します。')
+                .addStringOption(option =>
+                    option.setName('mode')
+                        .setDescription('モードを選択してください。')
+                        .setRequired(true)
+                        .addChoices(
+                            { name: '全チャンネルで許可 (allow-all)', value: 'allow-all' },
+                            { name: '指定チャンネルのみ許可 (restricted)', value: 'restricted' }
+                        )
+                )
         ),
     async execute(interaction) {
         if (!interaction.inGuild()) {
-            // このチェックはsetDMPermission(false)により不要ですが、念のため残します。
             await interaction.reply({ content: 'このコマンドはサーバー内でのみ使用できます。', ephemeral: true });
             return;
         }
@@ -89,12 +102,31 @@ module.exports = {
             }
             case 'list': {
                 const config = await getGuildConfig(interaction.guildId);
+                const mode = config.channel_mode || 'allow-all';
                 const allowed = config.allowed_channels || [];
-                if (allowed.length === 0) {
-                    await interaction.editReply({ content: "現在、すべてのチャンネルでコマンドが許可されています。" });
-                } else {
-                    await interaction.editReply({ content: `コマンドが許可されているチャンネル:\n${allowed.map(id => `<#${id}>`).join("\n")}` });
+
+                let replyText = `現在のチャンネルモード: **${mode}**\n\n`;
+
+                if (mode === 'restricted') {
+                    if (allowed.length === 0) {
+                        replyText += "許可されているチャンネルはありません。現在、Botはどのチャンネルでも使用できません。";
+                    } else {
+                        replyText += `許可されているチャンネル:\n${allowed.map(id => `<#${id}>`).join("\n")}`;
+                    }
+                } else { // 'allow-all'
+                    replyText += "すべてのチャンネルでBotの使用が許可されています（チャンネルごとの権限設定を除く）。";
                 }
+                
+                await interaction.editReply({ content: replyText });
+                break;
+            }
+            case 'mode': {
+                const mode = interaction.options.getString('mode');
+                await updateGuildConfig(interaction.guildId, 'channel_mode', mode);
+                const replyText = mode === 'restricted'
+                    ? 'モードを `restricted` (指定チャンネルのみ許可) に設定しました。`/config allow` でチャンネルを許可してください。'
+                    : 'モードを `allow-all` (全チャンネルで許可) に設定しました。';
+                await interaction.editReply({ content: replyText });
                 break;
             }
         }

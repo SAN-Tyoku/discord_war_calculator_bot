@@ -1,7 +1,8 @@
 const fs = require('fs');
 const path = require('path');
+const axios = require('axios');
+const logger = require('../logger');
 
-// 定数
 const MIN_YEAR = 862;
 const ROOT_DIR = path.resolve(__dirname, '..');
 
@@ -17,7 +18,6 @@ function getDefaultGameYear() {
     const timeDifference = now.getTime() - BASE_REAL_DATE.getTime();
     const daysPassed = Math.floor(timeDifference / (1000 * 60 * 60 * 24));
     
-    // 2日で1年進む
     const yearsPassed = Math.floor(daysPassed / 2);
     
     return BASE_GAME_YEAR + yearsPassed - 1;
@@ -73,8 +73,101 @@ function getQuestions(subCommand) {
     return [];
 }
 
+/**
+ * 外部APIにリクエストを送信してWARを計算します。
+ * @param {object} requestBody - APIに送信するリクエストボディ。
+ * @returns {Promise<import('axios').AxiosResponse<any>>} axiosのレスポンスを返すPromise。
+ */
+async function calculateWarWithApi(requestBody) {
+    const apiUrl = process.env.API_URL;
+    if (!apiUrl) throw new Error("API_URLが設定されていません。");
+
+    const separator = apiUrl.includes('?') ? '&' : '?';
+    const fullUrl = `${apiUrl}${separator}endpoint=calculate`;
+
+    const config = { headers: { 'Content-Type': 'application/json' } };
+    if (process.env.BASIC_ID && process.env.BASIC_PASS) {
+        config.auth = { username: process.env.BASIC_ID, password: process.env.BASIC_PASS };
+    }
+
+    return axios.post(fullUrl, requestBody, config);
+}
+
+
+function normalizeNumberString(str) {
+    if (!str) return '0';
+    return str
+        .replace(/[０-９]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xFEE0))
+        .replace(/,/g, '');
+}
+
+function parseInnings(str) {
+  const normalized = normalizeNumberString(str);
+  const parts = normalized.split('回');
+  let total = parseFloat(parts[0]);
+  
+  if (isNaN(total)) return 0;
+
+  if (parts[1]) {
+    if (parts[1].includes('1/3')) total += (1/3);
+    else if (parts[1].includes('2/3')) total += (2/3);
+  }
+  
+  return total;
+}
+
+
+function parseStatsText(text, type) {
+  const lines = text.split(/\r\n|\r|\n/).map(line => line.trim()).filter(line => line);
+  
+  const result = {};
+  
+  const map = {
+    fielder: {
+      "試合": "totalGames",
+      "打席": "plateAppearance", "打数": "atBat", "安打": "hit", "二塁打": "doubleHit",
+      "三塁打": "triple", "本塁打": "homeRun", "四球": "walk", "死球": "hbp",
+      "盗塁": "steal", "盗塁死": "caughtStealing", "併殺打": "doublePlay",
+      "好走塁": "goodBaseRunning", "失策": "error", "好守備": "finePlay",
+      "盗塁刺": "catchStealing", "許盗塁": "stolenBasesAllowed"
+    },
+    pitcher: {
+      "投球回": "innings", "自責点": "earnedRuns", "被安打": "hitsAllowed",
+      "被本塁打": "homeRunsAllowed", "与四球": "walksAllowed", "与死球": "hitBatsmen",
+      "奪三振": "strikeouts", "試合": "appearances", "先発": "starts"
+    }
+  };
+
+  const currentMap = map[type];
+  if (!currentMap) return {};
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    
+    if (currentMap[line]) {
+      const apiKey = currentMap[line];
+      const valueLine = lines[i + 1];
+
+      if (valueLine) {
+        if (apiKey === 'innings') {
+          result[apiKey] = parseInnings(valueLine);
+        } else {
+          const normalizedValue = normalizeNumberString(valueLine);
+          const num = parseFloat(normalizedValue);
+          result[apiKey] = isNaN(num) ? 0 : num;
+        }
+      }
+    }
+  }
+
+  return result;
+}
+
 module.exports = {
     MIN_YEAR,
     getDefaultGameYear,
-    getQuestions
+    getQuestions,
+    calculateWarWithApi,
+    parseStatsText,
+    parseInnings,
 };

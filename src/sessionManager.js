@@ -1,9 +1,7 @@
 const { ChannelType, ThreadAutoArchiveDuration, EmbedBuilder } = require('discord.js');
-const axios = require('axios');
 const logger = require('../logger');
-const { getQuestions } = require('./utils');
+const { getQuestions, calculateWarWithApi } = require('./utils');
 
-//セッションをメモリ上で管理するためのMap
 const sessions = new Map();
 
 /**
@@ -14,47 +12,61 @@ const sessions = new Map();
  * @param {number} year - 対象年度。
  * @param {string} league - 対象リーグ。
  * @param {object} config - サーバー設定オブジェクト。
+ * @param {object} [initialSessionData={}] - セッションに事前入力するデータ (answers, stepなど)。
  * @returns {Promise<void>}
  */
-async function startWarSession(trigger, subCommand, year, league, config) {
+async function startWarSession(trigger, subCommand, year, league, config, initialSessionData = {}) {
     const isInteraction = trigger.isCommand?.() || trigger.isChatInputCommand?.();
     const user = isInteraction ? trigger.user : trigger.author;
     const channel = trigger.channel;
 
     try {
-        // スラッシュコマンドの場合は、ephemeral（一時的）な応答を準備
-        if (isInteraction) await trigger.deferReply({ ephemeral: true });
+        if (isInteraction) {
+             if (!trigger.isModalSubmit() && !trigger.deferred) {
+                await trigger.deferReply({ ephemeral: true });
+            }
+        }
         
         const thread = await channel.threads.create({
             name: `WAR計算-${user.username}`,
             autoArchiveDuration: ThreadAutoArchiveDuration.OneHour,
-            type: ChannelType.PrivateThread, // ここをPrivateThreadに変更
+            type: ChannelType.PrivateThread,
             reason: 'WAR Calculation Session'
         });
 
-        // プライベートスレッドにユーザーを招待
         await thread.members.add(user.id);
 
-        // スラッシュコマンドの場合のみ、本人にだけ見えるメッセージでスレッドへのリンクを通知
         if (isInteraction) {
-            const replyContent = `プライベートスレッドを作成しました。こちらへどうぞ ▶ <#${thread.id}>`;
-            await trigger.editReply({ content: replyContent });
+            const replyContent = `ポジション別試合数を入力するため、プライベートスレッドを作成しました。こちらへどうぞ ▶ <#${thread.id}>`;
+            if (trigger.isModalSubmit()) {
+                await trigger.followUp({ content: replyContent, ephemeral: true });
+            } else {
+                await trigger.editReply({ content: replyContent });
+            }
         }
-        // メッセージコマンドの場合は、元のチャンネルには何も返信しない
 
         let roleMention = "";
         if (config.notify_role_id) roleMention = `\n(通知: <@&${config.notify_role_id}>)`;
 
         const questions = getQuestions(subCommand);
-        const session = { userId: user.id, subCommand, year, league, step: 0, answers: {}, lastUpdate: Date.now() };
+        const session = {
+            userId: user.id,
+            subCommand,
+            year,
+            league,
+            step: 0,
+            answers: {},
+            ...initialSessionData,
+            lastUpdate: Date.now()
+        };
         
         sessions.set(thread.id, session);
-        await thread.send(`${roleMention} <@${user.id}> **(1/${questions.length})** ${questions[0].q}\n(中断したい場合は "!end" や "!back" と入力してください)`);
+        await thread.send(`${roleMention} <@${user.id}> **(${session.step + 1}/${questions.length})** ${questions[session.step].q}\n(中断したい場合は "!end" や "!back" と入力してください)`);
 
     } catch (error) {
         logger.error(`スレッド作成中にエラーが発生しました: ${error.message}`);
         if (isInteraction) {
-            if (trigger.deferred || trigger.replied) {
+            if (trigger.replied || trigger.deferred) {
                 await trigger.followUp({ content: '!!!エラーが発生しました。!!!', ephemeral: true });
             } else {
                 await trigger.reply({ content: '!!!エラーが発生しました。!!!', ephemeral: true });
@@ -74,37 +86,34 @@ async function startWarSession(trigger, subCommand, year, league, config) {
  */
 async function processApiCalculation(message, session) {
     const threadId = message.channelId;
+    let requestBody = {};
     try {
-        const apiUrl = process.env.API_URL;
-        if (!apiUrl) throw new Error("API_URL未設定");
-
-        const separator = apiUrl.includes('?') ? '&' : '?';
-        const fullUrl = `${apiUrl}${separator}endpoint=calculate`;
-
-        const requestBody = {
+        requestBody = {
             calcType: session.subCommand,
             year: session.year,
             league: session.league,
             ...session.answers
         };
 
-        const config = { headers: { 'Content-Type': 'application/json' } };
-        if (process.env.BASIC_ID && process.env.BASIC_PASS) {
-            config.auth = { username: process.env.BASIC_ID, password: process.env.BASIC_PASS };
-        }
-
-        const response = await axios.post(fullUrl, requestBody, config);
+        const response = await calculateWarWithApi(requestBody);
         
         if (typeof response.data === 'object') {
             const statLabels = {
-                'WAR': 'WAR (総合)', 'oWAR': 'oWAR (攻撃)', 'dWAR': 'dWAR (守備)', 'RAR': 'RAR',
-                'BatR': '打撃', 'BsR': '走塁', 'FldR': '守備', 'PosR': '守備位置', 'RepR': '代替補償',
-                'FIP': 'FIP', 'RA9': 'RA/9'
-            };
+				'war': 'WAR',
+				'woba': 'wOBA',
+				'batting': '打撃貢献',
+				'baserunning': '走塁貢献',
+				'fielding': '守備貢献',
+				'fip': 'FIP',
+				'era': '防御率',
+				'whip': 'WHIP'
+			};
+            
+            const title = `WAR計算結果 (${session.year}年 / ${session.league}リーグ)`;
 
             const embed = new EmbedBuilder()
                 .setColor(0x3498DB)
-                .setTitle(`WAR計算結果 (${session.year}年 / ${session.league}リーグ)`)
+                .setTitle(title)
                 .setDescription(`**${session.subCommand === 'fielder' ? '野手' : '投手'}** の計算が完了しました。`)
                 .setTimestamp();
             
@@ -126,6 +135,7 @@ async function processApiCalculation(message, session) {
             technicalErrorMsg = `Status ${error.response.status}: ${JSON.stringify(error.response.data)}`;
         }
         logger.error(`API計算処理でエラーが発生しました: ${technicalErrorMsg}`);
+        logger.error(`[Error Context] Request Body: ${JSON.stringify(requestBody)}`);
         
         await message.channel.send('!!!APIエラー: 計算サーバーへの接続に失敗しました。管理者に連絡してください。!!!');
     } finally {

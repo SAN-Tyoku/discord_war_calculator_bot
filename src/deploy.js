@@ -30,11 +30,10 @@ async function updateCommands(token, applicationId) {
             }
         }
         
-        // 'calculate_war' コマンドの 'year' オプションを動的に更新
         const maxYear = getDefaultGameYear();
         const calcWarCommand = commands.find(cmd => cmd.name === 'calculate_war');
         if (calcWarCommand) {
-            for (const subcommand of calcWarCommand.options.filter(opt => opt.type === 1)) { // 1 is for Subcommand
+            for (const subcommand of calcWarCommand.options.filter(opt => opt.type === 1)) {
                 const yearOption = subcommand.options.find(opt => opt.name === 'year');
                 if (yearOption) {
                     yearOption.max_value = maxYear;
@@ -59,7 +58,6 @@ async function updateCommands(token, applicationId) {
     }
 }
 
-// スクリプトとして実行された場合にコマンドを更新
 if (require.main === module) {
     const token = process.env.BOT_TOKEN;
     const appId = process.env.APPLICATION_ID;

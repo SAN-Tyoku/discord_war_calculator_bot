@@ -13,10 +13,11 @@ module.exports = {
                 {
                     name: '<一般ユーザー向けコマンド>',
                     value: `
-・\`/calculate_war [fielder/pitcher]\`: WAR計算を開始します。専用スレッドが作成されます。
-・\`/help\`: このヘルプを表示します。
-・\`!end\` (スレッド内専用): 入力を中断し、セッションを強制終了します。
-・\`!back\` (スレッド内専用): 一つ前の質問に戻ります。
+                    ・\`/calculate_war [fielder/pitcher]\`: WAR計算を開始します。専用スレッドが作成されます。
+                    ・\`/seiseki_paste\`: 成績テキストを貼り付けてWARを計算するフォームを開きます。
+                    ・\`/help\`: このヘルプを表示します。
+                    ・\`!end\` (スレッド内専用): 入力を中断し、セッションを強制終了します。
+                    ・\`!back\` (スレッド内専用): 一つ前の質問に戻ります。
                     `
                 }
             );
@@ -26,11 +27,11 @@ module.exports = {
             helpEmbed.addFields({
                 name: '<管理者向けコマンド>',
                 value: `
-・\`/config role [@role]\`: 通知ロールを設定/解除します。
-・\`/config allow [#channel]\`: コマンドの使用を特定のチャンネルに許可します。
-・\`/config disallow [#channel]\`: 特定のチャンネルでのコマンド使用を禁止します。
-・\`/config list\`: 許可チャンネルの一覧を表示します。
-・\`!force_war <fielder|pitcher> <year> <league>\`: 強制的にWAR計算を開始します。
+                ・\`/config role [@role]\`: 通知ロールを設定/解除します。
+                ・\`/config allow [#channel]\`: コマンドの使用を特定のチャンネルに許可します。
+                ・\`/config disallow [#channel]\`: 特定のチャンネルでのコマンド使用を禁止します。
+                ・\`/config list\`: 許可チャンネルの一覧を表示します。
+                ・\`!force_war <fielder|pitcher> <year> <league>\`: 強制的にWAR計算を開始します。
                 `
             });
         }

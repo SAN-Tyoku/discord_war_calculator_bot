@@ -54,7 +54,6 @@ async function getGuildConfig(guildId) {
             const config = {};
             rows.forEach(row => {
                 try {
-                    // JSONとして保存されている可能性がある値をパース
                     config[row.key] = JSON.parse(row.value);
                 } catch (e) {
                     config[row.key] = row.value;
@@ -76,7 +75,6 @@ async function updateGuildConfig(guildId, key, value) {
     await dbReady;
     return new Promise((resolve, reject) => {
         if (value === null || value === undefined) {
-            // 値が null または undefined の場合は行を削除
             db.run("DELETE FROM guild_configs WHERE guild_id = ? AND key = ?", [guildId, key], function(err) {
                 if (err) {
                     logger.error(`[Database] 設定の削除に失敗 (Guild: ${guildId}, Key: ${key}): ${err.message}`);
@@ -88,10 +86,8 @@ async function updateGuildConfig(guildId, key, value) {
                 resolve();
             });
         } else {
-            // プリミティブ型でない場合はJSON文字列として保存
             const valueToStore = typeof value === 'object' ? JSON.stringify(value) : value;
             
-            // REPLACE INTOは、行が存在すれば更新、なければ挿入するSQLiteの構文
             const stmt = "REPLACE INTO guild_configs (guild_id, key, value) VALUES (?, ?, ?)";
             db.run(stmt, [guildId, key, valueToStore], function(err) {
                 if (err) {
@@ -124,10 +120,8 @@ async function closeDatabase() {
 }
 
 module.exports = {
-    dbReady, // テスト用にエクスポート
+    dbReady,
     getGuildConfig,
     updateGuildConfig,
-    closeDatabase, // テスト用にエクスポート
+    closeDatabase,
 };
-
-
