@@ -1,5 +1,5 @@
 const { Events } = require('discord.js');
-const { getGuildConfig } = require('../database');
+const { getGuildConfig, isBlacklisted } = require('../database');
 const { getQuestions } = require('../utils');
 const { sessions, processApiCalculation, closeThread, startWarSession } = require('../sessionManager');
 
@@ -7,6 +7,11 @@ module.exports = {
     name: Events.MessageCreate,
     async execute(message) {
         if (message.author.bot) return;
+
+        // ブラックリストチェック
+        if (await isBlacklisted(message.author.id) || (message.guildId && await isBlacklisted(message.guildId))) {
+            return;
+        }
 
         if (message.content.startsWith('!') && message.guild) {
             const isOwner = message.guild.ownerId === message.author.id;

@@ -1,6 +1,6 @@
 {
   "name": "war-calculator-bot",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "WARを計算するためのDiscordボット",
   "main": "src/Index.js",
   "scripts": {
@@ -12,6 +12,7 @@
     "axios": "^1.6.0",
     "discord.js": "^14.14.0",
     "dotenv": "^16.3.1",
+    "node-schedule": "^2.1.1",
     "sqlite3": "^5.1.7",
     "winston": "^3.18.3"
   },

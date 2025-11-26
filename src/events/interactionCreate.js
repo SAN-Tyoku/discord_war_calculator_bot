@@ -1,12 +1,25 @@
 const { Events, EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder } = require('discord.js');
 const logger = require('../../logger');
 const { calculateWarWithApi, MIN_YEAR, getDefaultGameYear, parseStatsText } = require('../utils');
+const { isBlacklisted } = require('../database');
 
 const pasteCache = new Map();
 
 module.exports = {
 	name: Events.InteractionCreate,
 	async execute(interaction) {
+		// ブラックリストチェック
+		if (await isBlacklisted(interaction.user.id) || (interaction.guildId && await isBlacklisted(interaction.guildId))) {
+			// 応答せずに無視するか、エラーメッセージを返す。ここでは静かに無視する。
+			// ただしインタラクションは応答しないとエラー表示になるため、ephemeralで返す
+			try {
+				if (!interaction.replied && !interaction.deferred) {
+					await interaction.reply({ content: 'あなた、またはこのサーバーはBotの利用を制限されています。', ephemeral: true });
+				}
+			} catch(e) { /* ignore */ }
+			return;
+		}
+
 		if (interaction.isChatInputCommand()) {
 			const command = interaction.client.commands.get(interaction.commandName);
 

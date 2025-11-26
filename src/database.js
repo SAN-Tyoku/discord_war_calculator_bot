@@ -35,6 +35,17 @@ const dbReady = new Promise((resolve, reject) => {
         db = instance;
         resolve(db);
     });
+
+    instance.run(`CREATE TABLE IF NOT EXISTS global_blacklist (
+        id TEXT PRIMARY KEY,
+        type TEXT NOT NULL, -- 'user' or 'guild'
+        reason TEXT,
+        timestamp INTEGER
+    )`, (err) => {
+        if (err) {
+            logger.error(`[Database] ブラックリストテーブルの作成に失敗しました: ${err.message}`);
+        }
+    });
 });
 
 
@@ -103,6 +114,79 @@ async function updateGuildConfig(guildId, key, value) {
     });
 }
 
+// --- ブラックリスト関連 ---
+
+/**
+ * ブラックリストに追加します。
+ * @param {string} id - ユーザーIDまたはサーバーID。
+ * @param {'user'|'guild'} type - IDの種類。
+ * @param {string} reason - 追加理由。
+ * @returns {Promise<void>}
+ */
+async function addToBlacklist(id, type, reason = '') {
+    await dbReady;
+    return new Promise((resolve, reject) => {
+        db.run("REPLACE INTO global_blacklist (id, type, reason, timestamp) VALUES (?, ?, ?, ?)",
+            [id, type, reason, Date.now()], (err) => {
+                if (err) {
+                    logger.error(`[Database] ブラックリストへの追加失敗: ${err.message}`);
+                    return reject(err);
+                }
+                logger.info(`[Database] ブラックリストに追加: ${id} (${type})`);
+                resolve();
+            });
+    });
+}
+
+/**
+ * ブラックリストから削除します。
+ * @param {string} id - 削除するID。
+ * @returns {Promise<void>}
+ */
+async function removeFromBlacklist(id) {
+    await dbReady;
+    return new Promise((resolve, reject) => {
+        db.run("DELETE FROM global_blacklist WHERE id = ?", [id], (err) => {
+            if (err) {
+                logger.error(`[Database] ブラックリスト削除失敗: ${err.message}`);
+                return reject(err);
+            }
+            logger.info(`[Database] ブラックリストから削除: ${id}`);
+            resolve();
+        });
+    });
+}
+
+/**
+ * IDがブラックリストに含まれているか確認します。
+ * @param {string} id - 確認するID。
+ * @returns {Promise<boolean>} 含まれている場合はtrue。
+ */
+async function isBlacklisted(id) {
+    await dbReady;
+    return new Promise((resolve, reject) => {
+        db.get("SELECT 1 FROM global_blacklist WHERE id = ?", [id], (err, row) => {
+            if (err) return reject(err);
+            resolve(!!row);
+        });
+    });
+}
+
+/**
+ * ブラックリストの一覧を取得します。
+ * @returns {Promise<Array>}
+ */
+async function getBlacklist() {
+    await dbReady;
+    return new Promise((resolve, reject) => {
+        db.all("SELECT * FROM global_blacklist", (err, rows) => {
+            if (err) return reject(err);
+            resolve(rows);
+        });
+    });
+}
+
+
 /**
  * (テスト用) データベース接続を閉じます。
  * @returns {Promise<void>}
@@ -123,5 +207,9 @@ module.exports = {
     dbReady,
     getGuildConfig,
     updateGuildConfig,
+    addToBlacklist,
+    removeFromBlacklist,
+    isBlacklisted,
+    getBlacklist,
     closeDatabase,
 };

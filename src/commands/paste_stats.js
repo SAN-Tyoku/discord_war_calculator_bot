@@ -14,7 +14,7 @@ module.exports = {
     async execute(interaction) {
         const modal = new ModalBuilder()
             .setCustomId('pasteStatsModal')
-            .setTitle('成績一括登録 (WAR計算)');
+            .setTitle('WAR計算');
 
         const currentYear = getDefaultGameYear();
         const yearInput = new TextInputBuilder()
