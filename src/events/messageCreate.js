@@ -1,6 +1,7 @@
 const { Events } = require('discord.js');
 const { getGuildConfig, isBlacklisted } = require('../database');
 const { getQuestions } = require('../utils');
+const logger = require('../../logger');
 const { sessions, processApiCalculation, closeThread, startWarSession } = require('../sessionManager');
 
 module.exports = {
@@ -56,6 +57,7 @@ module.exports = {
             if (message.author.id !== session.userId) return;
 
             const messageContent = message.content.trim();
+            logger.debug(`[Input] User: ${message.author.tag}, Content: ${messageContent}, Current Step: ${session.step}`);
 
             if (messageContent === '!end') {
                 await message.reply('セッションを強制終了しました。');
@@ -105,6 +107,7 @@ module.exports = {
             session.answers[currentQ.key] = parseFloat(val);
             session.step++;
             session.lastUpdate = Date.now();
+            logger.debug(`[Session] Updated answers: ${JSON.stringify(session.answers)}`);
 
             if (session.step < questions.length) {
                 const nextQ = questions[session.step];

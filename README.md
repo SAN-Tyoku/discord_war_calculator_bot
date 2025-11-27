@@ -79,7 +79,8 @@
 | `API_URL` | WAR計算APIのエンドポイントURL。 |
 | `BASIC_ID` | APIにBasic認証が必要な場合のユーザーID。 |
 | `BASIC_PASS` | APIにBasic認証が必要な場合のパスワード。 |
-| `NODE_ENV` | `development` または `production` を指定します。`development` の場合、デバッグログがコンソールに出力されます。 |
+| `NODE_ENV` | `development` または `production` を指定します。`development` の場合、コンソール出力が有効になります。 |
+| `LOG_LEVEL` | ログの詳細度を指定します (`error`, `warn`, `info`, `debug` など)。デフォルトは `info` です。`debug` に設定すると、API通信の内容やユーザー入力などの詳細なデバッグ情報が出力されます。 |
 
 ## 必要なDiscord Gateway Intents
 
@@ -222,7 +223,8 @@ bot本体とは独立して実行可能です。
 * ログはプロジェクトルートの `logs` ディレクトリ内に保存されます。
 * `error.log`: エラーレベルのログのみ記録されます。
 * `debug.log`: すべてのレベルのログが記録されます。
-* `NODE_ENV=development` に設定すると、コンソールにも詳細なログが表示されます。
+* 環境変数 `LOG_LEVEL` を設定することで、コンソール出力の詳細度を制御できます（例: `LOG_LEVEL=debug`）。
+* `NODE_ENV=development` の場合、または `LOG_LEVEL` が設定されている場合、コンソールにもログが出力されます。
 
 ## ライセンス
 

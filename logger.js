@@ -17,8 +17,10 @@ const logFormat = printf(({ level, message, timestamp }) => {
   return `${timestamp} [${level}]: ${message}`;
 });
 
+const logLevel = process.env.LOG_LEVEL || 'info';
+
 const logger = winston.createLogger({
-  level: 'debug',
+  level: logLevel,
   format: combine(
     timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
     logFormat
@@ -26,7 +28,7 @@ const logger = winston.createLogger({
   transports: [
     new winston.transports.File({ 
       filename: path.join(logDir, 'debug.log'),
-      level: 'debug',
+      level: 'debug', // ファイルには常にデバッグログまで残す
       maxsize: 5242880, 
       maxFiles: 5,
     }),
@@ -39,14 +41,15 @@ const logger = winston.createLogger({
   ],
 });
 
-if (!['production', 'test'].includes(process.env.NODE_ENV)) {
+// 環境変数が指定されている、または本番環境以外ではコンソールに出力
+if (process.env.LOG_LEVEL || !['production', 'test'].includes(process.env.NODE_ENV)) {
   logger.add(new winston.transports.Console({
     format: combine(
       colorize(),
       align(),
       logFormat
     ),
-    level: 'debug',
+    level: logLevel,
   }));
 }
 

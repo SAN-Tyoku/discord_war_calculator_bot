@@ -61,6 +61,7 @@ async function startWarSession(trigger, subCommand, year, league, config, initia
         };
         
         sessions.set(thread.id, session);
+        logger.debug(`[Session] Started new session: ${JSON.stringify(session)}`);
         await thread.send(`${roleMention} <@${user.id}> **(${session.step + 1}/${questions.length})** ${questions[session.step].q}\n(中断したい場合は "!end" や "!back" と入力してください)`);
 
     } catch (error) {
@@ -95,7 +96,9 @@ async function processApiCalculation(message, session) {
             ...session.answers
         };
 
+        logger.debug(`[API] Request Body: ${JSON.stringify(requestBody)}`);
         const response = await calculateWarWithApi(requestBody);
+        logger.debug(`[API] Response Data: ${JSON.stringify(response.data)}`);
         
         if (typeof response.data === 'object') {
             const statLabels = {
