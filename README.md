@@ -107,7 +107,7 @@ botがDiscordサーバーで正しく動作するために、以下の権限が�
 
 以下のリンクからあなたのサーバーにbotを招待できます。
 
-[Botを招待する](https://discord.com/oauth2/authorize?client_id=1442533151862689854&permissions=360777337856&integration_type=0&scope=bot)
+[Botを招待する](https://discord.com/oauth2/authorize?client_id=1442533151862689854&permissions=360777337856&integration_type=0&scope=bot){:target="_blank"}
 
 ※botに必要な権限は、上記リンクに含まれていますが、詳細は[Botに必要な権限](#botに必要な権限)セクションをご確認ください。
 
