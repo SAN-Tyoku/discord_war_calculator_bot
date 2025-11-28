@@ -46,6 +46,20 @@ const dbReady = new Promise((resolve, reject) => {
             logger.error(`[Database] ブラックリストテーブルの作成に失敗しました: ${err.message}`);
         }
     });
+
+    instance.run(`CREATE TABLE IF NOT EXISTS feedbacks (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id TEXT NOT NULL,
+        user_tag TEXT,
+        guild_id TEXT NOT NULL,
+        category TEXT,
+        content TEXT NOT NULL,
+        timestamp INTEGER
+    )`, (err) => {
+        if (err) {
+            logger.error(`[Database] フィードバックテーブルの作成に失敗しました: ${err.message}`);
+        }
+    });
 });
 
 
@@ -65,7 +79,12 @@ async function getGuildConfig(guildId) {
             const config = {};
             rows.forEach(row => {
                 try {
-                    config[row.key] = JSON.parse(row.value);
+                    // 数字のみの文字列（Snowflake IDなど）はJSON.parseすると精度落ちするため、文字列のまま扱う
+                    if (/^\d+$/.test(row.value)) {
+                        config[row.key] = row.value;
+                    } else {
+                        config[row.key] = JSON.parse(row.value);
+                    }
                 } catch (e) {
                     config[row.key] = row.value;
                 }
@@ -186,6 +205,46 @@ async function getBlacklist() {
     });
 }
 
+/**
+ * フィードバックをデータベースに追加します。
+ * @param {string} userId - 送信者のID
+ * @param {string} userTag - 送信者のタグ
+ * @param {string} guildId - サーバーID
+ * @param {string} category - カテゴリ
+ * @param {string} content - 内容
+ * @returns {Promise<void>}
+ */
+async function addFeedback(userId, userTag, guildId, category, content) {
+    await dbReady;
+    return new Promise((resolve, reject) => {
+        db.run("INSERT INTO feedbacks (user_id, user_tag, guild_id, category, content, timestamp) VALUES (?, ?, ?, ?, ?, ?)",
+            [userId, userTag, guildId, category, content, Date.now()],
+            (err) => {
+                if (err) {
+                    logger.error(`[Database] フィードバック保存失敗: ${err.message}`);
+                    return reject(err);
+                }
+                logger.info(`[Database] 新しいフィードバック: ${userTag} (${category})`);
+                resolve();
+            });
+    });
+}
+
+/**
+ * 最新のフィードバックを取得します。
+ * @param {number} limit - 取得件数
+ * @returns {Promise<Array>}
+ */
+async function getFeedbacks(limit = 10) {
+    await dbReady;
+    return new Promise((resolve, reject) => {
+        db.all("SELECT * FROM feedbacks ORDER BY timestamp DESC LIMIT ?", [limit], (err, rows) => {
+            if (err) return reject(err);
+            resolve(rows);
+        });
+    });
+}
+
 
 /**
  * (テスト用) データベース接続を閉じます。
@@ -211,5 +270,7 @@ module.exports = {
     removeFromBlacklist,
     isBlacklisted,
     getBlacklist,
+    addFeedback,
+    getFeedbacks,
     closeDatabase,
 };

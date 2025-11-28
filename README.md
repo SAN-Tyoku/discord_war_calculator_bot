@@ -126,6 +126,7 @@ botが起動し、コンソールにログイン情報が表示されます。
 | **/seiseki_paste** | 成績テキストを貼り付けてWARを計算します。野手/投手を自動判別します。 |
 | **!end** | (スレッド内専用) 入力を中断し、強制終了してスレッドを閉じます。 |
 | **!back** | (スレッド内専用) 一つ前の質問に戻ります。 |
+| **/feedback** | 開発者やサーバー管理者にフィードバックやバグ報告を送信します。利用にはサーバー管理者の設定が必要です。 |
 
 ---
 
@@ -137,7 +138,9 @@ botが起動し、コンソールにログイン情報が表示されます。
 | **/config disallow** | **チャンネル禁止**<br>`restricted`モード時に、許可リストからチャンネルを削除します。<br>使用法: `/config disallow #channel` |
 | **/config list** | **設定リスト確認**<br>現在の動作モードと、許可されているチャンネルの一覧を表示します。 |
 | **/config role** | **通知ロール設定**<br>スレッド作成時にメンションするロールを設定/解除します。<br>設定: `/config role @Role`<br>解除: `/config role` |
+| **/status** | **システム診断**<br>APIサーバーへの接続テストや、権限チェック、現在設定の診断を行います。 |
 | **!force_war** | **強制計算開始 (従来コマンド)**<br>年度制限を無視して計算を開始します。<br>使用法: `!force_war <fielder/pitcher> <year> <league>` |
+| **/config feedback** | **フィードバック受信設定**<br>ユーザーからのフィードバックを受け取るチャンネルを設定します。<br>設定: `/config feedback #channel`<br>解除: `/config feedback` |
 
 ## ホスト管理者向け機能
 
@@ -184,6 +187,17 @@ bot本体とは独立して実行可能です。
 
     # 削除
     node tools/blacklist.js remove <ID>
+    ```
+
+* **フィードバック内容の確認**
+    ユーザーから送信されたフィードバック内容をCLIで確認できます。
+
+    ```bash
+    # 最新20件のフィードバックを表示
+    node tools/check_feedback.js
+
+    # 全てのフィードバックを表示
+    node tools/check_feedback.js --all
     ```
 
 * **Botステータス(Activity)の変更**

@@ -1,7 +1,7 @@
-const { Events, EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder } = require('discord.js');
+const { Events, EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } = require('discord.js');
 const logger = require('../../logger');
 const { calculateWarWithApi, MIN_YEAR, getDefaultGameYear, parseStatsText } = require('../utils');
-const { isBlacklisted } = require('../database');
+const { isBlacklisted, getGuildConfig, addFeedback } = require('../database');
 
 const pasteCache = new Map();
 
@@ -110,30 +110,128 @@ module.exports = {
 				}
 
 				await performCalculation(interaction, 'pitcher', year, league, parsedStats);
-			}
-		} else if (interaction.isStringSelectMenu()) {
-			logger.debug(`[SelectMenu] User ${interaction.user.username} (${interaction.user.id}) in ${location} selected menu: ${interaction.customId}, values: ${JSON.stringify(interaction.values)}`);
-			if (interaction.customId === 'select_paste_position') {
-				const cachedData = pasteCache.get(interaction.user.id);
-
-				if (!cachedData) {
-					await interaction.reply({ content: 'セッションの有効期限が切れました。もう一度コマンドを実行してください。', ephemeral: true });
-					return;
-				}
-
-				await interaction.deferReply({ ephemeral: true }); 
-
-				const { year, league, stats } = cachedData;
-				const positionKey = interaction.values[0];
-
-				const games = stats.totalGames || 130;
-				
-				stats[positionKey] = games;
-
-				await performCalculation(interaction, 'fielder', year, league, stats);
-
-				pasteCache.delete(interaction.user.id);
-			}
+			            } else if (interaction.customId.startsWith('feedbackModal_')) {
+							await interaction.deferReply({ ephemeral: true });
+			
+							// customIdからカテゴリキーを抽出 (例: feedbackModal_bug_report)
+							const categoryKey = interaction.customId.replace('feedbackModal_', '');
+							const categoryMap = {
+								'bug_report': 'バグ報告',
+								'feature_request': '機能要望',
+								'question': '質問',
+								'other': 'その他'
+							};
+							const category = categoryMap[categoryKey] || categoryKey; // マップになければそのまま
+			
+							const content = interaction.fields.getTextInputValue('content');
+							const userTag = interaction.user.tag;
+			
+							try {
+								// DBに保存
+								await addFeedback(interaction.user.id, userTag, interaction.guildId, category, content);
+			
+								// サーバー設定から通知先チャンネルを取得
+								const config = await getGuildConfig(interaction.guildId);
+								if (config.feedback_channel_id) {
+									const targetId = String(config.feedback_channel_id).trim();
+									let channel = interaction.guild.channels.cache.get(targetId);
+			
+									if (!channel) {
+										logger.debug(`[Feedback] キャッシュにチャンネル(${targetId})がありません。GuildからFetchを試みます。`);
+										try {
+											// キャッシュになければ強制Fetch
+											channel = await interaction.guild.channels.fetch(targetId, { force: true });
+										} catch (err) {
+											logger.warn(`[Feedback] Guild Fetch失敗 (ID: ${targetId}): ${err.message}`);
+										}
+									}
+			
+									if (!channel) {
+										logger.debug(`[Feedback] Guildで見つかりません。Client全体からFetchを試みます。`);
+										try {
+											// それでもなければClient全体から
+											channel = await interaction.client.channels.fetch(targetId, { force: true });
+										} catch (err) {
+											logger.warn(`[Feedback] Client Fetch失敗 (ID: ${targetId}): ${err.message}`);
+										}
+									}
+									
+									if (channel && channel.isTextBased()) {
+										const feedbackEmbed = new EmbedBuilder()
+											.setColor(0xF1C40F) // Yellow
+											.setTitle('新しいフィードバック')
+											.setAuthor({ name: `${userTag} (${interaction.user.id})`, iconURL: interaction.user.displayAvatarURL() })
+											.addFields(
+												{ name: 'カテゴリ', value: category, inline: true },
+												{ name: '内容', value: content }
+											)
+											.setTimestamp()
+											.setFooter({ text: `User ID: ${interaction.user.id}` });
+			
+										await channel.send({ embeds: [feedbackEmbed] });
+									} else {
+										logger.warn(`[Feedback] 通知先チャンネルに送信できません。ID: ${config.feedback_channel_id}, 存在: ${!!channel}, TextBased: ${channel?.isTextBased?.()}`);
+									}
+								}
+			
+								await interaction.editReply({ content: 'フィードバックを送信しました。ご協力ありがとうございます！' });
+			
+							} catch (error) {
+								logger.error(`[Feedback] 処理中にエラー: ${error.message}`);
+								await interaction.editReply({ content: 'エラーが発生しました。時間を置いて再試行してください。' });
+							}
+						}
+					} else if (interaction.isStringSelectMenu()) {
+						logger.debug(`[SelectMenu] User ${interaction.user.username} (${interaction.user.id}) in ${location} selected menu: ${interaction.customId}, values: ${JSON.stringify(interaction.values)}`);
+						
+						if (interaction.customId === 'select_paste_position') {
+							const cachedData = pasteCache.get(interaction.user.id);
+			
+							if (!cachedData) {
+								await interaction.reply({ content: 'セッションの有効期限が切れました。もう一度コマンドを実行してください。', ephemeral: true });
+								return;
+							}
+			
+							await interaction.deferReply({ ephemeral: true }); 
+			
+							const { year, league, stats } = cachedData;
+							const positionKey = interaction.values[0];
+			
+							const games = stats.totalGames || 130;
+							
+							stats[positionKey] = games;
+			
+							await performCalculation(interaction, 'fielder', year, league, stats);
+			
+							pasteCache.delete(interaction.user.id);
+						} else if (interaction.customId === 'feedback_category_select') {
+							const selectedCategoryKey = interaction.values[0];
+							const categoryMap = {
+								'bug_report': 'バグ報告',
+								'feature_request': '機能要望',
+								'question': '質問',
+								'other': 'その他'
+							};
+							const categoryLabel = categoryMap[selectedCategoryKey] || selectedCategoryKey;
+							
+							const modal = new ModalBuilder()
+								.setCustomId(`feedbackModal_${selectedCategoryKey}`)
+								.setTitle(`フィードバック: ${categoryLabel}`);
+			
+							const contentInput = new TextInputBuilder()
+								.setCustomId('content')
+								.setLabel('詳細内容')
+								.setPlaceholder('ここに詳細を入力してください...')
+								.setStyle(TextInputStyle.Paragraph)
+								.setRequired(true)
+								.setMaxLength(1000);
+			
+							const row = new ActionRowBuilder().addComponents(contentInput);
+							modal.addComponents(row);
+			
+							await interaction.showModal(modal);
+						}
+			
 		}
 	},
 };

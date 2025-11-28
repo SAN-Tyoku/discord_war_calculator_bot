@@ -18,6 +18,7 @@ module.exports = {
                     ・\`/help\`: このヘルプを表示します。
                     ・\`!end\` (スレッド内専用): 入力を中断し、セッションを強制終了します。
                     ・\`!back\` (スレッド内専用): 一つ前の質問に戻ります。
+                    ・\`/feedback\`: 開発者やサーバー管理者にフィードバックを送信します。
                     `
                 }
             );
@@ -31,7 +32,9 @@ module.exports = {
                 ・\`/config allow [#channel]\`: コマンドの使用を特定のチャンネルに許可します。
                 ・\`/config disallow [#channel]\`: 特定のチャンネルでのコマンド使用を禁止します。
                 ・\`/config list\`: 許可チャンネルの一覧を表示します。
+                ・\`/status\`: システムのステータス診断を表示します。
                 ・\`!force_war <fielder|pitcher> <year> <league>\`: 強制的にWAR計算を開始します。
+                ・\`/config feedback [#channel]\`: フィードバックを受け取るチャンネルを設定/解除します。
                 `
             });
         }

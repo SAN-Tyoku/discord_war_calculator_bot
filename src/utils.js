@@ -165,11 +165,39 @@ function parseStatsText(text, type) {
   return result;
 }
 
+/**
+ * APIサーバーのステータスを確認します。
+ * 軽量な計算リクエストを送信して応答を確認します。
+ * @returns {Promise<{status: 'ok'|'error', latency?: number, message?: string}>}
+ */
+async function checkApiStatus() {
+    const requestBody = {
+        calcType: 'fielder',
+        year: MIN_YEAR,
+        league: 'A',
+        plateAppearance: 0, atBat: 0, hit: 0, doubleHit: 0, triple: 0, homeRun: 0,
+        walk: 0, hbp: 0, steal: 0, caughtStealing: 0, goodBaseRunning: 0,
+        doublePlay: 0, error: 0, finePlay: 0, catchStealing: 0, stolenBasesAllowed: 0,
+        cGame: 0, fbGame: 0, sbGame: 0, tbGame: 0, ssGame: 0, lfGame: 0, cfGame: 0, rfGame: 0, dhGame: 0
+    };
+
+    const start = Date.now();
+    try {
+        await calculateWarWithApi(requestBody);
+        const duration = Date.now() - start;
+        return { status: 'ok', latency: duration };
+    } catch (error) {
+        logger.error(`[HealthCheck] API Error: ${error.message}`);
+        return { status: 'error', message: '接続失敗' }; // URLを漏らさないために詳細を伏せる
+    }
+}
+
 module.exports = {
     MIN_YEAR,
     getDefaultGameYear,
     getQuestions,
     calculateWarWithApi,
+    checkApiStatus,
     parseStatsText,
     parseInnings,
 };

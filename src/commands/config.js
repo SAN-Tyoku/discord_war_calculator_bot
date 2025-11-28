@@ -57,6 +57,17 @@ module.exports = {
                             { name: '指定チャンネルのみ許可 (restricted)', value: 'restricted' }
                         )
                 )
+        )
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('feedback')
+                .setDescription('フィードバックの受信設定を行います。')
+                .addChannelOption(option =>
+                    option.setName('target_channel')
+                        .setDescription('フィードバックを受け取るチャンネル (未指定の場合は機能をOFFにします)')
+                        .setRequired(false)
+                        .addChannelTypes(ChannelType.GuildText)
+                )
         ),
     async execute(interaction) {
         if (!interaction.inGuild()) {
@@ -127,6 +138,17 @@ module.exports = {
                     ? 'モードを `restricted` (指定チャンネルのみ許可) に設定しました。`/config allow` でチャンネルを許可してください。'
                     : 'モードを `allow-all` (全チャンネルで許可) に設定しました。';
                 await interaction.editReply({ content: replyText });
+                break;
+            }
+            case 'feedback': {
+                const channel = interaction.options.getChannel('target_channel');
+                if (channel) {
+                    await updateGuildConfig(interaction.guildId, 'feedback_channel_id', channel.id);
+                    await interaction.editReply({ content: `フィードバック機能を有効にしました。\n送信されたフィードバックは <#${channel.id}> に通知されます。` });
+                } else {
+                    await updateGuildConfig(interaction.guildId, 'feedback_channel_id', null);
+                    await interaction.editReply({ content: `フィードバック機能を無効にしました。` });
+                }
                 break;
             }
         }
