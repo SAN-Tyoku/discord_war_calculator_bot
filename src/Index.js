@@ -3,7 +3,6 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { Client, Collection, GatewayIntentBits } = require('discord.js');
 const logger = require('../logger');
-const schedule = require('node-schedule');
 const { updateCommands } = require('./deploy');
 
 require('./database');
@@ -58,21 +57,6 @@ client.once('ready', async () => {
     } else {
         logger.error('[System] APPLICATION_ID または BOT_TOKEN が .env ファイルに設定されていません。コマンドは更新されません。');
     }
-
-    // 毎日JST 21:01にコマンドを更新するスケジュールを設定
-    // cron形式: '分 時 日 月 曜日'
-    // 1分 21時 (毎日 任意月 任意曜日)
-    // タイムゾーンはBotが動作するサーバーのローカルタイムゾーンに依存するため、
-    // 確実にJSTで動作させるには環境変数TZ='Asia/Tokyo'などを設定する必要がある。
-    schedule.scheduleJob('1 21 * * *', async () => {
-        logger.info('[System] スケジュールされたコマンド更新を実行します...');
-        if (appId && token) {
-            await updateCommands(token, appId);
-        } else {
-            logger.error('[System] APPLICATION_ID または BOT_TOKEN が設定されていないため、スケジュールされたコマンド更新はスキップされました。');
-        }
-    });
-    logger.info('[System] コマンドの定期更新スケジュールを設定しました (毎日JST 21:01)。');
 });
 
 

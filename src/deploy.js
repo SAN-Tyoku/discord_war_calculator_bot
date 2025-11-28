@@ -30,18 +30,6 @@ async function updateCommands(token, applicationId) {
             }
         }
         
-        const maxYear = getDefaultGameYear();
-        const calcWarCommand = commands.find(cmd => cmd.name === 'calculate_war');
-        if (calcWarCommand) {
-            for (const subcommand of calcWarCommand.options.filter(opt => opt.type === 1)) {
-                const yearOption = subcommand.options.find(opt => opt.name === 'year');
-                if (yearOption) {
-                    yearOption.max_value = maxYear;
-                    yearOption.description = `年度 (${MIN_YEAR}〜${maxYear})`;
-                }
-            }
-        }
-
         const rest = new REST({ version: '10' }).setToken(token);
         
         logger.info(`[System] ${commands.length}個のアプリケーションコマンドの更新を開始しました。`);
@@ -51,7 +39,7 @@ async function updateCommands(token, applicationId) {
             { body: commands },
         );
 
-        logger.info(`[System] アプリケーションコマンドの定義を更新しました。 (Max Year: ${maxYear})`);
+        logger.info(`[System] アプリケーションコマンドの定義を更新しました。`);
 
     } catch (error) {
         logger.error(`[System] コマンド定義の更新に失敗しました: ${error.message}`);
