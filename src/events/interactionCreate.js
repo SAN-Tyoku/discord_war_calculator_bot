@@ -8,6 +8,8 @@ const pasteCache = new Map();
 module.exports = {
 	name: Events.InteractionCreate,
 	async execute(interaction) {
+		const location = interaction.guild ? `${interaction.guild.name} (${interaction.guildId})` : 'DM';
+
 		// ブラックリストチェック
 		if (await isBlacklisted(interaction.user.id) || (interaction.guildId && await isBlacklisted(interaction.guildId))) {
 			// 応答せずに無視するか、エラーメッセージを返す。ここでは静かに無視する。
@@ -21,7 +23,7 @@ module.exports = {
 		}
 
 		if (interaction.isChatInputCommand()) {
-			logger.debug(`[Command] User ${interaction.user.id} executed command: ${interaction.commandName}`);
+			logger.debug(`[Command] User ${interaction.user.username} (${interaction.user.id}) in ${location} executed command: ${interaction.commandName}`);
 			const command = interaction.client.commands.get(interaction.commandName);
 
 			if (!command) {
@@ -41,7 +43,7 @@ module.exports = {
 				}
 			}
 		} else if (interaction.isModalSubmit()) {
-			logger.debug(`[Modal] User ${interaction.user.id} submitted modal: ${interaction.customId}`);
+			logger.debug(`[Modal] User ${interaction.user.username} (${interaction.user.id}) in ${location} submitted modal: ${interaction.customId}`);
 			if (interaction.customId === 'pasteStatsModal') {
 				await interaction.deferReply({ ephemeral: true }); 
 
@@ -110,7 +112,7 @@ module.exports = {
 				await performCalculation(interaction, 'pitcher', year, league, parsedStats);
 			}
 		} else if (interaction.isStringSelectMenu()) {
-			logger.debug(`[SelectMenu] User ${interaction.user.id} selected menu: ${interaction.customId}, values: ${JSON.stringify(interaction.values)}`);
+			logger.debug(`[SelectMenu] User ${interaction.user.username} (${interaction.user.id}) in ${location} selected menu: ${interaction.customId}, values: ${JSON.stringify(interaction.values)}`);
 			if (interaction.customId === 'select_paste_position') {
 				const cachedData = pasteCache.get(interaction.user.id);
 
