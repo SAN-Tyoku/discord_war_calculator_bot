@@ -1,3 +1,4 @@
+require('dotenv').config();
 const fs = require('node:fs');
 const path = require('node:path');
 const { Client, Collection, GatewayIntentBits } = require('discord.js');
@@ -48,7 +49,7 @@ for (const file of eventFiles) {
 
 // BotがDiscord APIに接続し、準備ができたときに一度コマンドを更新
 client.once('ready', async () => {
-    logger.info(`[System] ${client.user.tag} としてログインしました！`);
+    logger.info(`[System] ${client.user.tag} としてログインしました！ (Log Level: ${logger.level})`);
     const appId = process.env.APPLICATION_ID;
     const token = process.env.BOT_TOKEN;
 

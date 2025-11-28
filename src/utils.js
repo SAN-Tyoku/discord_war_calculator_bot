@@ -118,6 +118,7 @@ function parseInnings(str) {
 
 
 function parseStatsText(text, type) {
+  logger.debug(`[Utils] Parsing stats text for type: ${type}. Input length: ${text.length}`);
   const lines = text.split(/\r\n|\r|\n/).map(line => line.trim()).filter(line => line);
   
   const result = {};
@@ -160,6 +161,7 @@ function parseStatsText(text, type) {
     }
   }
 
+  logger.debug(`[Utils] Parsed result: ${JSON.stringify(result)}`);
   return result;
 }
 

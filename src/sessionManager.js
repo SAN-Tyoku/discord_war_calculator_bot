@@ -34,6 +34,8 @@ async function startWarSession(trigger, subCommand, year, league, config, initia
             reason: 'WAR Calculation Session'
         });
 
+        logger.debug(`[Session] Created private thread: ${thread.id} for user: ${user.id}`);
+
         await thread.members.add(user.id);
 
         if (isInteraction) {
@@ -98,6 +100,7 @@ async function processApiCalculation(message, session) {
 
         logger.debug(`[API] Request Body: ${JSON.stringify(requestBody)}`);
         const response = await calculateWarWithApi(requestBody);
+        logger.debug(`[API] Response Status: ${response.status}`);
         logger.debug(`[API] Response Data: ${JSON.stringify(response.data)}`);
         
         if (typeof response.data === 'object') {
@@ -156,6 +159,7 @@ async function closeThread(thread) {
     try {
         await thread.setLocked(true);
         await thread.setArchived(true);
+        logger.debug(`[Session] Thread ${thread.id} closed and archived.`);
     } catch (e) { logger.error(`スレッドのアーカイブに失敗しました: ${e.message}`); }
 }
 

@@ -27,8 +27,8 @@ const logger = winston.createLogger({
   ),
   transports: [
     new winston.transports.File({ 
-      filename: path.join(logDir, 'debug.log'),
-      level: 'debug', // ファイルには常にデバッグログまで残す
+      filename: path.join(logDir, 'combined.log'),
+      level: logLevel, 
       maxsize: 5242880, 
       maxFiles: 5,
     }),
