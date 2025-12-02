@@ -85,7 +85,10 @@ async function calculateWarWithApi(requestBody) {
     const separator = apiUrl.includes('?') ? '&' : '?';
     const fullUrl = `${apiUrl}${separator}endpoint=calculate`;
 
-    const config = { headers: { 'Content-Type': 'application/json' } };
+    const config = {
+        headers: { 'Content-Type': 'application/json' },
+        timeout: parseInt(process.env.API_TIMEOUT || '10000', 10)
+    };
     if (process.env.BASIC_ID && process.env.BASIC_PASS) {
         config.auth = { username: process.env.BASIC_ID, password: process.env.BASIC_PASS };
     }

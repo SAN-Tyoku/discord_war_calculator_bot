@@ -74,8 +74,7 @@ module.exports = {
                     delete session.answers[questions[session.step + 1].key];
                     session.lastUpdate = Date.now();
                     sessions.set(message.channelId, session);
-                    await message.reply(`一つ前の質問に戻りました。
-**(${session.step + 1}/${questions.length})** ${previousQ.q}`);
+                    await message.reply(`一つ前の質問に戻りました。**(${session.step + 1}/${questions.length})** ${previousQ.q}`);
                 } else {
                     await message.reply('これ以上前に戻ることはできません。');
                 }
@@ -116,6 +115,15 @@ module.exports = {
             } else {
                 await message.channel.send("計算中...");
                 await processApiCalculation(message, session);
+            }
+        } else {
+            // セッションがないが、Botが作成したWAR計算スレッドでの発言の場合
+            if (message.channel.isThread() &&
+                message.channel.ownerId === message.client.user.id &&
+                message.channel.name.startsWith('WAR計算-')) {
+
+                await message.reply('このセッションは有効期限切れか、終了しています。新しい計算を行うには、再度コマンドを実行してください。');
+                await closeThread(message.channel);
             }
         }
     },

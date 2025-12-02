@@ -79,6 +79,7 @@
 | `BASIC_PASS` | APIにBasic認証が必要な場合のパスワード。 |
 | `NODE_ENV` | `development` または `production` を指定します。`development` の場合、コンソール出力が有効になります。 |
 | `LOG_LEVEL` | ログの詳細度を指定します (`error`, `warn`, `info`, `debug` など)。デフォルトは `info` です。この設定はコンソール出力だけでなく、`logs/combined.log` への出力レベルも制御します。`debug` に設定すると、API通信の内容やユーザー入力などの詳細なデバッグ情報が記録されます。 |
+| `API_TIMEOUT` | WAR計算APIとの通信時のタイムアウト設定 (ミリ秒)。デフォルトは `10000` (10秒) です。 |
 
 ## 必要なDiscord Gateway Intents
 
