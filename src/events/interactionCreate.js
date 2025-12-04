@@ -9,6 +9,26 @@ const pasteCache = new Map();
 module.exports = {
 	name: Events.InteractionCreate,
 	async execute(interaction) {
+        // --- メンテナンスチェック開始 ---
+        try {
+            const systemConfig = await getGuildConfig('SYSTEM');
+            if (systemConfig.maintenance_mode) {
+                const hostId = process.env.HOST_USER_ID;
+                if (interaction.user.id !== hostId) {
+                    const reply = { content: ' **現在メンテナンス中です** \nしばらくお待ちください。', ephemeral: true };
+                    if (interaction.deferred || interaction.replied) {
+                        await interaction.followUp(reply);
+                    } else {
+                        await interaction.reply(reply);
+                    }
+                    return;
+                }
+            }
+        } catch (e) {
+            logger.error(`メンテナンスチェックエラー: ${e.message}`);
+        }
+        // --- メンテナンスチェック終了 ---
+
 		const location = interaction.guild ? `${interaction.guild.name} (${interaction.guildId})` : 'DM';
 
 		// ブラックリストチェック
@@ -376,7 +396,7 @@ ${resultText.slice(0, 1900)}\
 	} catch (error) {
 		let technicalErrorMsg = error.message;
 		if (error.response) {
-			echnicalErrorMsg = `Status ${error.response.status}: ${JSON.stringify(error.response.data)}`;
+			technicalErrorMsg = `Status ${error.response.status}: ${JSON.stringify(error.response.data)}`;
 		}
 		logger.error(`API計算処理でエラーが発生しました: ${technicalErrorMsg}`);
 		logger.error(`[Error Context] Request Body: ${JSON.stringify(requestBody)}`);

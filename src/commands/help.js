@@ -35,6 +35,7 @@ module.exports = {
                 ・\`/status\`: システムのステータス診断を表示します。
                 ・\`!force_war <fielder|pitcher> <year> <league>\`: 強制的にWAR計算を開始します。
                 ・\`/config feedback [#channel]\`: フィードバックを受け取るチャンネルを設定/解除します。
+                ・\`/cleanup_threads\`: このチャンネルのBot計算用スレッドを一括アーカイブします。
                 `
             });
         }

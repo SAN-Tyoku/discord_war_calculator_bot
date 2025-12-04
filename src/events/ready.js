@@ -24,6 +24,17 @@ async function updateStatus(client) {
 	try {
 		// 'SYSTEM' という特殊なIDを使ってグローバル設定を保存していると仮定
 		const config = await getGuildConfig('SYSTEM');
+
+		// メンテナンスモードのチェック
+		if (config.maintenance_mode) {
+			client.user.setStatus('dnd'); // Do Not Disturb (赤)
+			client.user.setActivity('メンテナンス中', { type: ActivityType.Playing });
+			return;
+		}
+
+		// 通常モード: ステータスをオンラインに戻す
+		client.user.setStatus('online');
+
 		const statusConfig = config.status_config;
 
 		if (!statusConfig) return;

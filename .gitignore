@@ -16,7 +16,7 @@
 .env.development
 .env.production
 config.json
-config.db
+*.db
 
 # IDEs and editors
 .vscode
@@ -26,3 +26,6 @@ config.db
 *.njsproj
 *.sln
 *.sw?
+
+# Backups
+/backups

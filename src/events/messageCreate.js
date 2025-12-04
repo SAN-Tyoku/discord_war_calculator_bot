@@ -9,6 +9,31 @@ module.exports = {
     async execute(message) {
         if (message.author.bot) return;
 
+        // --- メンテナンスチェック開始 ---
+        try {
+            const systemConfig = await getGuildConfig('SYSTEM');
+            if (systemConfig.maintenance_mode) {
+                const hostId = process.env.HOST_USER_ID;
+                if (message.author.id !== hostId) {
+                    // スレッド内での発言などに対して毎回反応するとうるさいので、
+                    // コマンド開始時 (!force_war) や、Botへのメンション時のみ警告するなど調整も可。
+                    // ここでは、セッション進行中の入力等も含めて全て無視（または警告）する方針とする。
+                    
+                    // ただし、計算スレッド内での入力に対して毎回「メンテ中です」と返すとスパムになる可能性があるため
+                    // !force_war などの明確なコマンド開始時のみ返答するか、
+                    // そもそも何も返さずに無視するのが安全かもしれない。
+                    // 今回は "!force_war" の場合のみ返信し、それ以外は無視する設計にする。
+                    if (message.content.startsWith('!force_war')) {
+                        await message.reply('**現在メンテナンス中です** \nしばらくお待ちください。');
+                    }
+                    return;
+                }
+            }
+        } catch (e) {
+            logger.error(`メンテナンスチェックエラー: ${e.message}`);
+        }
+        // --- メンテナンスチェック終了 ---
+
         // ブラックリストチェック
         if (await isBlacklisted(message.author.id) || (message.guildId && await isBlacklisted(message.guildId))) {
             return;
