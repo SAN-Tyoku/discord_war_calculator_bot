@@ -54,6 +54,12 @@ module.exports = {
         const allowed = config.allowed_channels || [];
         const roleId = config.notify_role_id;
         
+        // SQLiteやJSONパースの挙動を考慮して柔軟に判定
+        const shareVal = config.allow_share_result;
+        // getGuildConfigの実装により、数値の1が文字列の"1"として返ってくる可能性があるためそれも考慮
+        const isShareEnabled = (shareVal === true || shareVal === 1 || shareVal === 'true' || shareVal === '1');
+        const shareEnabled = isShareEnabled ? '有効' : '無効';
+
         let modeText = mode === 'restricted' ? '指定チャンネルのみ (restricted)' : '全チャンネル許可 (allow-all)';
         let roleText = roleId ? `<@&${roleId}>` : 'なし';
         let allowedText = allowed.length > 0 
@@ -73,7 +79,7 @@ module.exports = {
             .setTitle('システムステータス & 設定確認')
             .addFields(
                 { name: 'システム診断', value: `**APIサーバー:** ${apiStatusText}\n**Discord応答:** ${wsStatusText}\n**チャンネル権限:** ${permissionText}`, inline: false },
-                { name: '現在のサーバー設定', value: `**モード:** ${modeText}\n**通知ロール:** ${roleText}\n**許可チャンネル:** ${allowedText}`, inline: false },
+                { name: '現在のサーバー設定', value: `**モード:** ${modeText}\n**通知ロール:** ${roleText}\n**許可チャンネル:** ${allowedText}\n**共有機能:** ${shareEnabled}`, inline: false },
                 { name: 'API情報', value: `**現在の計算可能な最大年度:** ${gameYear}年`, inline: false }
             )
             .setTimestamp()

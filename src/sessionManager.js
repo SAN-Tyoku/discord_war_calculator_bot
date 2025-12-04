@@ -1,6 +1,7 @@
 const { ChannelType, ThreadAutoArchiveDuration, EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const logger = require('../logger');
 const { getQuestions, calculateWarWithApi } = require('./utils');
+const { getGuildConfig } = require('./database');
 
 const sessions = new Map();
 
@@ -152,7 +153,11 @@ async function processApiCalculation(target, session) {
 				'whip': 'WHIP'
 			};
             
-            const title = `WAR計算結果 (${session.year}年 / ${session.league}リーグ)`;
+            let displayLeague = session.league;
+            if (displayLeague === 'A') displayLeague = 'α';
+            if (displayLeague === 'B') displayLeague = 'β';
+
+            const title = `WAR計算結果 (${session.year}年 / ${displayLeague}リーグ)`;
 
             const embed = new EmbedBuilder()
                 .setColor(0x3498DB)
@@ -185,6 +190,24 @@ async function processApiCalculation(target, session) {
             
             const row1 = new ActionRowBuilder().addComponents(selectMenu);
             const row2 = new ActionRowBuilder().addComponents(endButton);
+
+            // 共有機能のチェック
+            try {
+                const guildId = target.guildId || target.guild?.id;
+                if (guildId) {
+                    const config = await getGuildConfig(guildId);
+                    const val = config.allow_share_result;
+                    const isEnabled = (val === true || val === 1 || val === 'true' || val === '1');
+                    
+                    if (isEnabled) {
+                        const shareButton = new ButtonBuilder()
+                            .setCustomId('share_result_btn')
+                            .setLabel('結果を共有')
+                            .setStyle(ButtonStyle.Secondary)
+                        row2.addComponents(shareButton);
+                    }
+                }
+            } catch (e) { logger.warn(`Config fetch failed in session: ${e.message}`); }
 
             const payload = {
                 content: '**計算完了!**\n数値を修正して再計算できます。終了する場合は「終了」ボタンを押してください。',

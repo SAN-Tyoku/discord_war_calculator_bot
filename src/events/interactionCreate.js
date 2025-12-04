@@ -298,6 +298,113 @@ module.exports = {
                 if (!session.isEphemeral && interaction.channel.isThread()) {
                     await closeThread(interaction.channel);
                 }
+            } else if (interaction.customId === 'share_result_btn') {
+                let targetChannel;
+
+                // スレッド内の場合 (対話モード)
+                if (interaction.channel.isThread()) {
+                    // セッション情報からユーザーを確認
+                    const session = sessions.get(interaction.channelId);
+                    
+                    if (session) { // セッションが有効な場合
+                        if (session.userId !== interaction.user.id) {
+                            await interaction.reply({ content: '計算を行った本人のみが共有できます。', ephemeral: true });
+                            return;
+                        }
+                    } else { // セッションが有効期限切れの場合
+                        // セッション切れでも、Private Thread内でボタンを押せるのは本人か管理者のみ。
+                        // かつ、共有EmbedのAuthorにはボタンを押した人の情報が入るので、なりすましリスクは低いと判断。
+                        // ここでは、セッション切れでも共有を許可する。
+                        logger.debug(`[Share] Session expired for thread ${interaction.channelId}, but allowing share by ${interaction.user.id}.`);
+                    }
+                    targetChannel = interaction.channel.parent;
+                } else {
+                    // スレッド外の場合 (Pasteモード - Ephemeral)
+                    // Ephemeralのボタンは本人しか見えないため、本人確認は暗黙的に完了している
+                    targetChannel = interaction.channel;
+                }
+
+                if (!targetChannel) {
+                     await interaction.reply({ content: '共有先のチャンネルが見つかりません。', ephemeral: true });
+                     return;
+                }
+
+                // 共有機能が有効か再チェック (設定変更後のボタン押下対策)
+                try {
+                    const config = await getGuildConfig(interaction.guildId);
+                    const val = config.allow_share_result;
+                    const isEnabled = (val === true || val === 1 || val === 'true' || val === '1');
+                    
+                    if (!isEnabled) {
+                        await interaction.reply({ content: '現在、このサーバーでは共有機能が無効化されています。', ephemeral: true });
+                        return;
+                    }
+                } catch (e) {
+                    logger.warn(`Config check failed during share: ${e.message}`);
+                    // エラー時は安全側に倒して拒否するか、スルーするかだが、ここでは拒否
+                    await interaction.reply({ content: '設定確認中にエラーが発生しました。', ephemeral: true });
+                    return;
+                }
+
+                const embed = interaction.message.embeds[0];
+                if (!embed) {
+                    await interaction.reply({ content: '共有する結果が見つかりません。', ephemeral: true });
+                    return;
+                }
+
+                try {
+                    // 共有用Embed作成
+                    const newEmbed = EmbedBuilder.from(embed)
+                        .setAuthor({ 
+                            name: `${interaction.user.username} の計算結果`, 
+                            iconURL: interaction.user.displayAvatarURL() 
+                        });
+
+                    await targetChannel.send({ 
+                        content: `<@${interaction.user.id}> がWAR計算結果を共有しました！`,
+                        embeds: [newEmbed] 
+                    });
+
+                    // ボタンを「共有済み」に更新
+                    const disabledButton = ButtonBuilder.from(interaction.component)
+                        .setLabel('共有済み')
+                        .setStyle(ButtonStyle.Success)
+                        .setDisabled(true);
+                    
+                    // 全コンポーネントを走査してボタンを更新
+                    const newComponents = interaction.message.components.map(row => {
+                        const newRow = ActionRowBuilder.from(row);
+                        const hasButton = row.components.some(c => c.customId === 'share_result_btn');
+                        if (hasButton) {
+                            const updatedButtons = newRow.components.map(c => 
+                                c.customId === 'share_result_btn' ? disabledButton : c
+                            );
+                            newRow.setComponents(updatedButtons);
+                        }
+                        return newRow;
+                    });
+
+                    // ボタンの状態を更新
+                    await interaction.update({ components: newComponents });
+
+                    // 共有後は用済みなので、スレッドなら強制的にクローズする
+                    if (interaction.channel.isThread()) {
+                        // 少し待ってからクローズしないと、interaction.updateが完了する前に閉じられてエラーになる可能性があるため
+                        // しかしawait interaction.updateしているので基本は大丈夫。
+                        // 万全を期すならエラーハンドリング内で。
+                        try {
+                            await closeThread(interaction.channel);
+                        } catch (e) {
+                            logger.warn(`共有後のスレッドクローズに失敗: ${e.message}`);
+                        }
+                    }
+
+                } catch (error) {
+                    logger.error(`結果共有エラー: ${error.message}`);
+                    if (!interaction.replied && !interaction.deferred) {
+                        await interaction.reply({ content: '共有に失敗しました。Botの権限などを確認してください。', ephemeral: true });
+                    }
+                }
             }
         }
 	},
@@ -345,9 +452,13 @@ async function performCalculation(interaction, calcType, year, league, stats) {
 				'whip': 'WHIP'
 			};
 
+            let displayLeague = league;
+            if (displayLeague === 'A') displayLeague = 'α';
+            if (displayLeague === 'B') displayLeague = 'β';
+
 			const embed = new EmbedBuilder()
 				.setColor(0x3498DB)
-				.setTitle(`WAR計算結果 (${year}年 / ${league}リーグ)`)
+				.setTitle(`WAR計算結果 (${year}年 / ${displayLeague}リーグ)`)
 				.setDescription(`**${calcType === 'fielder' ? '野手' : '投手'}** のWAR計算が完了しました。`)
 				.setTimestamp();
 
@@ -368,8 +479,28 @@ async function performCalculation(interaction, calcType, year, league, stats) {
             const msgContent = { 
                 content: '**計算完了!**',
                 embeds: [embed],
-                ephemeral: true
+                ephemeral: true,
+                components: []
             };
+
+            // 共有機能のチェック (Pasteモード)
+            try {
+                const guildId = interaction.guildId || interaction.guild?.id;
+                if (guildId) {
+                    const config = await getGuildConfig(guildId);
+                    const val = config.allow_share_result;
+                    const isEnabled = (val === true || val === 1 || val === 'true' || val === '1');
+                    
+                    if (isEnabled) {
+                        const shareButton = new ButtonBuilder()
+                            .setCustomId('share_result_btn')
+                            .setLabel('結果を共有')
+                            .setStyle(ButtonStyle.Secondary)
+                        const row = new ActionRowBuilder().addComponents(shareButton);
+                        msgContent.components.push(row);
+                    }
+                }
+            } catch (e) { logger.warn(`Config fetch failed in paste mode: ${e.message}`); }
 
 			if (interaction.deferred) {
 				await interaction.editReply(msgContent);

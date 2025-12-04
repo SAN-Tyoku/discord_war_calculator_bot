@@ -68,6 +68,16 @@ module.exports = {
                         .setRequired(false)
                         .addChannelTypes(ChannelType.GuildText)
                 )
+        )
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('share')
+                .setDescription('計算結果の共有機能を設定します。')
+                .addBooleanOption(option =>
+                    option.setName('enabled')
+                        .setDescription('共有ボタンを表示するかどうか (True: 表示, False: 非表示)')
+                        .setRequired(true)
+                )
         ),
     async execute(interaction) {
         if (!interaction.inGuild()) {
@@ -149,6 +159,13 @@ module.exports = {
                     await updateGuildConfig(interaction.guildId, 'feedback_channel_id', null);
                     await interaction.editReply({ content: `フィードバック機能を無効にしました。` });
                 }
+                break;
+            }
+            case 'share': {
+                const enabled = interaction.options.getBoolean('enabled');
+                await updateGuildConfig(interaction.guildId, 'allow_share_result', enabled);
+                const status = enabled ? '有効 (ボタンを表示)' : '無効 (ボタンを非表示)';
+                await interaction.editReply({ content: `計算結果の共有機能を **${status}** に設定しました。` });
                 break;
             }
         }
