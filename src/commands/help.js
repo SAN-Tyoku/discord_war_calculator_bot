@@ -4,6 +4,10 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('help')
         .setDescription('Botのコマンド一覧と使い方を表示します。'),
+    /**
+     * コマンドを実行します。
+     * @param {import('discord.js').ChatInputCommandInteraction} interaction
+     */
     async execute(interaction) {
         const helpEmbed = new EmbedBuilder()
             .setColor(0x0099FF)

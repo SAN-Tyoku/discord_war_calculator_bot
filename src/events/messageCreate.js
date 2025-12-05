@@ -6,6 +6,11 @@ const { sessions, processApiCalculation, closeThread, startWarSession } = requir
 
 module.exports = {
     name: Events.MessageCreate,
+    /**
+     * メッセージ受信時に呼び出されます。
+     * 対話セッションの進行や、デバッグ用コマンドの処理を行います。
+     * @param {import('discord.js').Message} message - 受信したメッセージ。
+     */
     async execute(message) {
         if (message.author.bot) return;
 
@@ -134,7 +139,6 @@ module.exports = {
                 await processApiCalculation(message, session);
             }
         } else {
-            // セッションがないが、Botが作成したWAR計算スレッドでの発言の場合
             if (message.channel.isThread() &&
                 message.channel.ownerId === message.client.user.id &&
                 message.channel.name.startsWith('WAR計算-')) {

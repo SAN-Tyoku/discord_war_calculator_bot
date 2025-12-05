@@ -79,7 +79,6 @@ async function getGuildConfig(guildId) {
             const config = {};
             rows.forEach(row => {
                 try {
-                    // 数字のみの文字列（Snowflake IDなど）はJSON.parseすると精度落ちするため、文字列のまま扱う
                     if (/^\d+$/.test(row.value)) {
                         config[row.key] = row.value;
                     } else {

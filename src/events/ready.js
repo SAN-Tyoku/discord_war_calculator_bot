@@ -5,14 +5,16 @@ const { getGuildConfig } = require('../database');
 module.exports = {
 	name: Events.ClientReady,
 	once: true,
+	/**
+	 * クライアントの準備が完了したときに呼び出されます。
+	 * @param {import('discord.js').Client} client - Discordクライアントインスタンス。
+	 */
 	async execute(client) {
 		logger.info(`Botが起動しました。ログインユーザー: ${client.user.tag}`);
 
 		// ステータスの初期更新
 		await updateStatus(client);
-
-		// 10分ごとにステータスを更新 (DBの変更反映 & サーバー数などの数値変動反映)
-		setInterval(() => updateStatus(client), 10 * 60 * 1000);
+		setInterval(() => updateStatus(client), 10 * 60 * 1000); // 10分ごとにステータスを更新
 	},
 };
 
@@ -22,12 +24,11 @@ module.exports = {
  */
 async function updateStatus(client) {
 	try {
-		// 'SYSTEM' という特殊なIDを使ってグローバル設定を保存していると仮定
 		const config = await getGuildConfig('SYSTEM');
 
 		// メンテナンスモードのチェック
 		if (config.maintenance_mode) {
-			client.user.setStatus('dnd'); // Do Not Disturb (赤)
+			client.user.setStatus('dnd');
 			client.user.setActivity('メンテナンス中', { type: ActivityType.Playing });
 			return;
 		}
@@ -54,11 +55,9 @@ async function updateStatus(client) {
 					type = ActivityType.Watching;
 					break;
 				default:
-					// デフォルトは何もしないか、固定値
 					break;
 			}
 		} else {
-			// custom mode
 			name = statusConfig.value || '';
 			if (statusConfig.type) {
 				switch (statusConfig.type.toLowerCase()) {

@@ -1,7 +1,6 @@
 // JSDocの型チェックを有効にする
 /** @type {import('jest').Config} */
 
-// NODE_ENVを'test'に設定
 process.env.NODE_ENV = 'test';
 
 const { dbReady, getGuildConfig, updateGuildConfig, closeDatabase } = require('./database');
@@ -9,7 +8,6 @@ const { dbReady, getGuildConfig, updateGuildConfig, closeDatabase } = require('.
 describe('database.js', () => {
     let db;
 
-    // テスト開始前に、データベースの初期化が完了するのを待つ
     beforeAll(async () => {
         db = await dbReady;
     });
@@ -24,7 +22,6 @@ describe('database.js', () => {
         });
     });
 
-    // 全テスト終了後にデータベース接続を閉じる
     afterAll(async () => {
         await closeDatabase();
     });
@@ -54,9 +51,7 @@ describe('database.js', () => {
 
     it('should update an existing value', async () => {
         const key = 'prefix';
-        // 最初の値を設定
         await updateGuildConfig(GUILD_ID, key, '!');
-        // 値を更新
         await updateGuildConfig(GUILD_ID, key, '$');
         
         const config = await getGuildConfig(GUILD_ID);
@@ -65,12 +60,10 @@ describe('database.js', () => {
 
     it('should delete a value when null is passed', async () => {
         const key = 'prefix';
-        // 値を設定
         await updateGuildConfig(GUILD_ID, key, '!');
         let config = await getGuildConfig(GUILD_ID);
         expect(config).toHaveProperty(key);
 
-        // 値を削除
         await updateGuildConfig(GUILD_ID, key, null);
         config = await getGuildConfig(GUILD_ID);
         expect(config).not.toHaveProperty(key);

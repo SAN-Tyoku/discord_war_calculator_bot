@@ -44,17 +44,16 @@ async function startWarSession(trigger, subCommand, year, league, config, initia
             }
         }
 
-        // ユーザーの既存セッションがあればクリーンアップ
         for (const [threadId, existingSession] of sessions.entries()) {
             if (existingSession.userId === user.id) {
                 logger.warn(`[Session] User ${user.id} started a new session, superseding old session in thread ${threadId}.`);
-                sessions.delete(threadId); // 古いセッションをマップから削除
+                sessions.delete(threadId);
 
                 // 古いスレッドをクローズ（アーカイブ）
                 try {
                     const oldThread = await trigger.client.channels.fetch(threadId);
-                    if (oldThread && oldThread.isThread()) { // スレッドであることを確認
-                        await closeThread(oldThread); // 既存のcloseThread関数を使用
+                    if (oldThread && oldThread.isThread()) {
+                        await closeThread(oldThread);
                         if (isInteraction) {
                             await trigger.followUp({ content: `既存のセッション <#${threadId}> は新しいセッションによって終了しました。`, ephemeral: true });
                         }
@@ -62,7 +61,7 @@ async function startWarSession(trigger, subCommand, year, league, config, initia
                 } catch (threadError) {
                     logger.error(`[Session] Failed to close old thread ${threadId}: ${threadError.message}`);
                 }
-                break; // 1つ見つけたら終了
+                break;
             }
         }
         
@@ -128,15 +127,9 @@ async function startWarSession(trigger, subCommand, year, league, config, initia
  * @returns {Promise<void>}
  */
 async function processApiCalculation(target, session) {
-    // targetがInteraction(Modal/Button/Command)かMessageかを判定
     const isInteraction = target.isRepliable?.(); 
-    
-    // Ephemeralかどうかは、Interactionの場合かつ、元々がEphemeralで始まっていれば維持したいが、
-    // ここでは「Paste入力由来のセッションかどうか」などで判定するのが確実。
-    // ただし、sessionオブジェクトにフラグを持たせるのが簡単。
     const isEphemeral = session.isEphemeral || false;
 
-    // 通常スレッドの場合のみ、古いコンポーネントを無効化
     if (!isEphemeral && session.lastResultMsgId) {
         try {
             const channel = target.channel || target.message?.channel;

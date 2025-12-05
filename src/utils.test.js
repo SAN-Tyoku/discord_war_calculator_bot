@@ -38,7 +38,6 @@ describe('utils.js', () => {
         const originalDate = global.Date;
 
         afterEach(() => {
-            // 各テストの後にDateオブジェクトを元に戻す
             global.Date = originalDate;
         });
 
@@ -46,8 +45,6 @@ describe('utils.js', () => {
             // テスト用の固定日時を設定 (基準日からちょうど10日後)
             const baseDate = new Date('2025-09-09T21:00:00+09:00');
             const mockDate = new Date(baseDate.getTime() + 10 * 24 * 60 * 60 * 1000); // 10日後
-            
-            // DateコンストラクタとDate.now()が固定日時を返すようにモックする
             global.Date = class extends originalDate {
                 constructor(dateString) {
                     if (dateString) {

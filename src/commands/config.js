@@ -79,6 +79,10 @@ module.exports = {
                         .setRequired(true)
                 )
         ),
+    /**
+     * コマンドを実行します。
+     * @param {import('discord.js').ChatInputCommandInteraction} interaction
+     */
     async execute(interaction) {
         if (!interaction.inGuild()) {
             await interaction.reply({ content: 'このコマンドはサーバー内でのみ使用できます。', ephemeral: true });

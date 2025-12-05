@@ -9,6 +9,10 @@ module.exports = {
         .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator)
         .setDMPermission(false),
     
+    /**
+     * コマンドを実行します。
+     * @param {import('discord.js').ChatInputCommandInteraction} interaction
+     */
     async execute(interaction) {
         if (!interaction.inGuild()) {
             await interaction.reply({ content: 'このコマンドはサーバー内でのみ使用できます。', ephemeral: true });
@@ -54,9 +58,7 @@ module.exports = {
         const allowed = config.allowed_channels || [];
         const roleId = config.notify_role_id;
         
-        // SQLiteやJSONパースの挙動を考慮して柔軟に判定
         const shareVal = config.allow_share_result;
-        // getGuildConfigの実装により、数値の1が文字列の"1"として返ってくる可能性があるためそれも考慮
         const isShareEnabled = (shareVal === true || shareVal === 1 || shareVal === 'true' || shareVal === '1');
         const shareEnabled = isShareEnabled ? '有効' : '無効';
 
@@ -73,7 +75,6 @@ module.exports = {
         // 5. ゲーム内年度
         const gameYear = getDefaultGameYear();
 
-        // Embed作成
         const embed = new EmbedBuilder()
             .setColor(0x2ECC71) // Green
             .setTitle('システムステータス & 設定確認')

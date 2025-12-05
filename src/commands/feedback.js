@@ -1,14 +1,17 @@
 const { SlashCommandBuilder, ActionRowBuilder, StringSelectMenuBuilder, StringSelectMenuOptionBuilder } = require('discord.js');
 const { getGuildConfig } = require('../database');
 
-// クールダウン管理用のMap
 const cooldowns = new Map();
-const COOLDOWN_SECONDS = 10; // 10秒間のクールダウン
+const COOLDOWN_SECONDS = 10;
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('feedback')
         .setDescription('開発者やサーバー管理者にフィードバックやバグ報告を送信します。'),
+    /**
+     * コマンドを実行します。
+     * @param {import('discord.js').ChatInputCommandInteraction} interaction
+     */
     async execute(interaction) {
         const userId = interaction.user.id;
         const now = Date.now();
@@ -34,7 +37,6 @@ module.exports = {
 
         const config = await getGuildConfig(interaction.guildId);
         
-        // フィードバックチャンネルが設定されていない場合は使用不可
         if (!config.feedback_channel_id) {
             await interaction.reply({
                 content: 'このサーバーではフィードバック機能が有効になっていません。\n管理者が `/config feedback` で受信チャンネルを設定する必要があります。',
@@ -63,7 +65,6 @@ module.exports = {
 
         // クールダウンを設定
         cooldowns.set(userId, now);
-        // COOLDOWN_SECONDS後にクールダウンを解除
         setTimeout(() => cooldowns.delete(userId), COOLDOWN_SECONDS * 1000);
     },
 };

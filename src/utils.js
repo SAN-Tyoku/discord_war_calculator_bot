@@ -97,6 +97,11 @@ async function calculateWarWithApi(requestBody) {
 }
 
 
+/**
+ * 全角数字を半角に変換し、カンマを除去します。
+ * @param {string} str - 変換対象の文字列。
+ * @returns {string} 変換後の文字列。空の場合は '0' を返します。
+ */
 function normalizeNumberString(str) {
     if (!str) return '0';
     return str
@@ -104,6 +109,11 @@ function normalizeNumberString(str) {
         .replace(/,/g, '');
 }
 
+/**
+ * 投球回の文字列（例: "143回1/3"）を数値に変換します。
+ * @param {string} str - 投球回を表す文字列。
+ * @returns {number} 変換された投球回（数値）。
+ */
 function parseInnings(str) {
   const normalized = normalizeNumberString(str);
   const parts = normalized.split('回');
@@ -120,6 +130,12 @@ function parseInnings(str) {
 }
 
 
+/**
+ * テキスト形式のスタッツをパースしてオブジェクトに変換します。
+ * @param {string} text - パース対象のテキスト。
+ * @param {'fielder' | 'pitcher'} type - スタッツの種類（野手または投手）。
+ * @returns {object} パースされたスタッツを含むオブジェクト。
+ */
 function parseStatsText(text, type) {
   logger.debug(`[Utils] Parsing stats text for type: ${type}. Input length: ${text.length}`);
   const lines = text.split(/\r\n|\r|\n/).map(line => line.trim()).filter(line => line);

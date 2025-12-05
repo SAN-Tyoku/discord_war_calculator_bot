@@ -8,6 +8,10 @@ const pasteCache = new Map();
 
 module.exports = {
 	name: Events.InteractionCreate,
+	/**
+	 * インタラクション（コマンド、ボタン、メニューなど）作成時に呼び出されます。
+	 * @param {import('discord.js').Interaction} interaction - インタラクションオブジェクト。
+	 */
 	async execute(interaction) {
         // --- メンテナンスチェック開始 ---
         try {
@@ -276,7 +280,7 @@ module.exports = {
 
                 const input = new TextInputBuilder()
                     .setCustomId('new_value')
-                    .setLabel(question.q.length > 45 ? question.label + 'を入力' : question.q) // ラベル長制限対策
+                    .setLabel(question.q.length > 45 ? question.label + 'を入力' : question.q)
                     .setValue(String(currentVal))
                     .setStyle(TextInputStyle.Short)
                     .setRequired(true);
@@ -302,33 +306,25 @@ module.exports = {
 
                 sessions.delete(interaction.channelId);
                 await interaction.reply({ content: 'セッションを終了しました。', ephemeral: false });
-                // ephemeralの場合はスレッドアーカイブ不要(というかスレッドがない)
                 if (!session.isEphemeral && interaction.channel.isThread()) {
                     await closeThread(interaction.channel);
                 }
             } else if (interaction.customId === 'share_result_btn') {
                 let targetChannel;
 
-                // スレッド内の場合 (対話モード)
                 if (interaction.channel.isThread()) {
-                    // セッション情報からユーザーを確認
                     const session = sessions.get(interaction.channelId);
                     
-                    if (session) { // セッションが有効な場合
+                    if (session) {
                         if (session.userId !== interaction.user.id) {
                             await interaction.reply({ content: '計算を行った本人のみが共有できます。', ephemeral: true });
                             return;
                         }
-                    } else { // セッションが有効期限切れの場合
-                        // セッション切れでも、Private Thread内でボタンを押せるのは本人か管理者のみ。
-                        // かつ、共有EmbedのAuthorにはボタンを押した人の情報が入るので、なりすましリスクは低いと判断。
-                        // ここでは、セッション切れでも共有を許可する。
+                    } else {
                         logger.debug(`[Share] Session expired for thread ${interaction.channelId}, but allowing share by ${interaction.user.id}.`);
                     }
                     targetChannel = interaction.channel.parent;
                 } else {
-                    // スレッド外の場合 (Pasteモード - Ephemeral)
-                    // Ephemeralのボタンは本人しか見えないため、本人確認は暗黙的に完了している
                     targetChannel = interaction.channel;
                 }
 
@@ -337,7 +333,6 @@ module.exports = {
                      return;
                 }
 
-                // 共有機能が有効か再チェック (設定変更後のボタン押下対策)
                 try {
                     const config = await getGuildConfig(interaction.guildId);
                     const val = config.allow_share_result;
@@ -349,7 +344,6 @@ module.exports = {
                     }
                 } catch (e) {
                     logger.warn(`Config check failed during share: ${e.message}`);
-                    // エラー時は安全側に倒して拒否するか、スルーするかだが、ここでは拒否
                     await interaction.reply({ content: '設定確認中にエラーが発生しました。', ephemeral: true });
                     return;
                 }
@@ -361,7 +355,6 @@ module.exports = {
                 }
 
                 try {
-                    // 共有用Embed作成
                     const newEmbed = EmbedBuilder.from(embed)
                         .setAuthor({ 
                             name: `${interaction.user.username} の計算結果`, 
@@ -373,7 +366,6 @@ module.exports = {
                         embeds: [newEmbed] 
                     });
 
-                    // ボタンを「共有済み」に更新
                     const disabledButton = ButtonBuilder.from(interaction.component)
                         .setLabel('共有済み')
                         .setStyle(ButtonStyle.Success)
@@ -392,14 +384,9 @@ module.exports = {
                         return newRow;
                     });
 
-                    // ボタンの状態を更新
                     await interaction.update({ components: newComponents });
 
-                    // 共有後は用済みなので、スレッドなら強制的にクローズする
                     if (interaction.channel.isThread()) {
-                        // 少し待ってからクローズしないと、interaction.updateが完了する前に閉じられてエラーになる可能性があるため
-                        // しかしawait interaction.updateしているので基本は大丈夫。
-                        // 万全を期すならエラーハンドリング内で。
                         try {
                             await closeThread(interaction.channel);
                         } catch (e) {
@@ -419,7 +406,12 @@ module.exports = {
 };
 
 /**
- * 共通計算・結果表示ロジック (Pasteモード用)
+ * Pasteモード用のWAR計算を実行し、結果を表示します。
+ * @param {import('discord.js').Interaction} interaction - インタラクションオブジェクト。
+ * @param {'fielder'|'pitcher'} calcType - 計算の種類。
+ * @param {number} year - 年度。
+ * @param {string} league - リーグ。
+ * @param {object} stats - スタッツデータ。
  */
 async function performCalculation(interaction, calcType, year, league, stats) {
 	// ポジション補完
@@ -482,8 +474,7 @@ async function performCalculation(interaction, calcType, year, league, stats) {
 					embed.addFields({ name: name, value: valueStr, inline: true });
 				}
 			}
-			
-			// Pasteモードはシンプルに結果のみを表示 (再計算ボタン等はなし)
+
             const msgContent = { 
                 content: '**計算完了!**',
                 embeds: [embed],
@@ -491,7 +482,6 @@ async function performCalculation(interaction, calcType, year, league, stats) {
                 components: []
             };
 
-            // 共有機能のチェック (Pasteモード)
             try {
                 const guildId = interaction.guildId || interaction.guild?.id;
                 if (guildId) {

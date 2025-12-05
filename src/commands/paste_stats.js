@@ -11,6 +11,10 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('seiseki_paste')
         .setDescription('モーダルを開いて成績を貼り付け、WARを計算します。'),
+    /**
+     * コマンドを実行します。
+     * @param {import('discord.js').ChatInputCommandInteraction} interaction
+     */
     async execute(interaction) {
         const modal = new ModalBuilder()
             .setCustomId('pasteStatsModal')

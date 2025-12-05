@@ -4,6 +4,7 @@ const path = require('node:path');
 const { Client, Collection, GatewayIntentBits } = require('discord.js');
 const logger = require('../logger');
 const { updateCommands } = require('./deploy');
+const { version } = require('../package.json');
 
 require('./database');
 
@@ -48,7 +49,7 @@ for (const file of eventFiles) {
 
 // BotがDiscord APIに接続し、準備ができたときに一度コマンドを更新
 client.once('ready', async () => {
-    logger.info(`[System] ${client.user.tag} としてログインしました！ (Log Level: ${logger.level})`);
+    logger.info(`[System] ${client.user.tag} (v${version}) としてログインしました！ (Log Level: ${logger.level})`);
     const appId = process.env.APPLICATION_ID;
     const token = process.env.BOT_TOKEN;
 

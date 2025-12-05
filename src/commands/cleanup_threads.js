@@ -8,8 +8,11 @@ module.exports = {
         .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator)
         .setDMPermission(false),
         
+    /**
+     * コマンドを実行します。
+     * @param {import('discord.js').ChatInputCommandInteraction} interaction
+     */
     async execute(interaction) {
-        // 権限チェックは setDefaultMemberPermissions で行われるが、念のため
         if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
             await interaction.reply({ content: 'このコマンドを実行する権限がありません。', ephemeral: true });
             return;
@@ -19,22 +22,16 @@ module.exports = {
 
         const channel = interaction.channel;
         
-        // スレッド以外では実行不可にする（スレッド内でスレッド一覧は取得できないため）
         if (channel.isThread()) {
             await interaction.editReply('このコマンドは親チャンネルで実行してください。');
             return;
         }
 
         try {
-            // アクティブなスレッドを取得
             const activeThreads = await channel.threads.fetchActive();
-            // アーカイブ済みスレッドも取得（念のため）
-            // const archivedThreads = await channel.threads.fetchArchived();
 
             let count = 0;
             const threadsToClose = activeThreads.threads.filter(thread => {
-                // 条件: Botが作成した (ownerId) かつ、名前が "WAR計算-" で始まる
-                // または、Botが管理権限を持っているもの
                 return thread.ownerId === interaction.client.user.id && thread.name.startsWith('WAR計算-');
             });
 
