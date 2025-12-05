@@ -1,11 +1,32 @@
 const { SlashCommandBuilder, ActionRowBuilder, StringSelectMenuBuilder, StringSelectMenuOptionBuilder } = require('discord.js');
 const { getGuildConfig } = require('../database');
 
+// クールダウン管理用のMap
+const cooldowns = new Map();
+const COOLDOWN_SECONDS = 10; // 10秒間のクールダウン
+
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('feedback')
         .setDescription('開発者やサーバー管理者にフィードバックやバグ報告を送信します。'),
     async execute(interaction) {
+        const userId = interaction.user.id;
+        const now = Date.now();
+
+        // クールダウンチェック
+        if (cooldowns.has(userId)) {
+            const lastExecutionTime = cooldowns.get(userId);
+            const remainingTime = (lastExecutionTime + (COOLDOWN_SECONDS * 1000) - now) / 1000;
+
+            if (remainingTime > 0) {
+                await interaction.reply({
+                    content: `フィードバックは${Math.ceil(remainingTime)}秒後に再度送信できます。`,
+                    ephemeral: true
+                });
+                return;
+            }
+        }
+
         if (!interaction.guildId) {
             await interaction.reply({ content: 'このコマンドはサーバー内でのみ使用できます。', ephemeral: true });
             return;
@@ -39,5 +60,10 @@ module.exports = {
             components: [row],
             ephemeral: true
         });
+
+        // クールダウンを設定
+        cooldowns.set(userId, now);
+        // COOLDOWN_SECONDS後にクールダウンを解除
+        setTimeout(() => cooldowns.delete(userId), COOLDOWN_SECONDS * 1000);
     },
 };

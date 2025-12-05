@@ -43,6 +43,28 @@ async function startWarSession(trigger, subCommand, year, league, config, initia
                 await trigger.deferReply({ ephemeral: true });
             }
         }
+
+        // ユーザーの既存セッションがあればクリーンアップ
+        for (const [threadId, existingSession] of sessions.entries()) {
+            if (existingSession.userId === user.id) {
+                logger.warn(`[Session] User ${user.id} started a new session, superseding old session in thread ${threadId}.`);
+                sessions.delete(threadId); // 古いセッションをマップから削除
+
+                // 古いスレッドをクローズ（アーカイブ）
+                try {
+                    const oldThread = await trigger.client.channels.fetch(threadId);
+                    if (oldThread && oldThread.isThread()) { // スレッドであることを確認
+                        await closeThread(oldThread); // 既存のcloseThread関数を使用
+                        if (isInteraction) {
+                            await trigger.followUp({ content: `既存のセッション <#${threadId}> は新しいセッションによって終了しました。`, ephemeral: true });
+                        }
+                    }
+                } catch (threadError) {
+                    logger.error(`[Session] Failed to close old thread ${threadId}: ${threadError.message}`);
+                }
+                break; // 1つ見つけたら終了
+            }
+        }
         
         const thread = await channel.threads.create({
             name: `WAR計算-${user.username}`,
@@ -56,7 +78,7 @@ async function startWarSession(trigger, subCommand, year, league, config, initia
         await thread.members.add(user.id);
 
         if (isInteraction) {
-            const replyContent = `ポジション別試合数を入力するため、プライベートスレッドを作成しました。こちらへどうぞ ▶ <#${thread.id}>`;
+            const replyContent = `プライベートスレッドを作成しました。こちらへどうぞ ▶ <#${thread.id}>`;
             if (trigger.isModalSubmit()) {
                 await trigger.followUp({ content: replyContent, ephemeral: true });
             } else {

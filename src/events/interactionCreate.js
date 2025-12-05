@@ -218,6 +218,14 @@ module.exports = {
 				pasteCache.delete(interaction.user.id);
 
 			} else if (interaction.customId === 'feedback_category_select') {
+                // メッセージの有効期限チェック (5分)
+                const messageTime = interaction.message.createdTimestamp;
+                const now = Date.now();
+                if (now - messageTime > 5 * 60 * 1000) {
+                    await interaction.update({ content: 'セッションの有効期限が切れました。もう一度コマンドを実行してください。', components: [] });
+                    return;
+                }
+
 				const selectedCategoryKey = interaction.values[0];
 				const categoryMap = {
 					'bug_report': 'バグ報告',
