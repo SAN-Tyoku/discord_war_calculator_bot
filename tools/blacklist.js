@@ -1,18 +1,14 @@
 require('dotenv').config();
 const { addToBlacklist, removeFromBlacklist, getBlacklist, closeDatabase } = require('../src/database');
-const readline = require('readline');
 
-const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-});
-
-const command = process.argv[2];
-const targetId = process.argv[3];
-const typeOrReason = process.argv[4]; // addの場合はtype, removeは不要
-const reason = process.argv[5];
-
-(async () => {
+/**
+ * ブラックリストコマンドを処理します。
+ * @param {'list'|'add'|'remove'} command 
+ * @param {string} [targetId] 
+ * @param {string} [typeOrReason] 
+ * @param {string} [reasonArg] 
+ */
+async function handleBlacklistCommand(command, targetId, typeOrReason, reasonArg) {
     try {
         if (!command) {
             console.log(`
@@ -21,7 +17,7 @@ const reason = process.argv[5];
   node tools/blacklist.js add <ID> <user|guild> [reason]
   node tools/blacklist.js remove <ID>
 `);
-            process.exit(0);
+            return;
         }
 
         if (command === 'list') {
@@ -38,19 +34,19 @@ const reason = process.argv[5];
         } else if (command === 'add') {
             if (!targetId || !typeOrReason) {
                 console.error('エラー: IDとタイプ(user/guild)を指定してください。');
-                process.exit(1);
+                return;
             }
             const type = typeOrReason.toLowerCase();
             if (type !== 'user' && type !== 'guild') {
                 console.error('エラー: タイプは "user" または "guild" で指定してください。');
-                process.exit(1);
+                return;
             }
-            await addToBlacklist(targetId, type, reason || '');
+            await addToBlacklist(targetId, type, reasonArg || '');
             console.log(`ID: ${targetId} をブラックリストに追加しました。`);
         } else if (command === 'remove') {
             if (!targetId) {
                 console.error('エラー: 削除するIDを指定してください。');
-                process.exit(1);
+                return;
             }
             await removeFromBlacklist(targetId);
             console.log(`ID: ${targetId} をブラックリストから削除しました。`);
@@ -60,9 +56,20 @@ const reason = process.argv[5];
 
     } catch (error) {
         console.error('エラーが発生しました:', error);
-    } finally {
-        await closeDatabase();
-        rl.close();
-        process.exit(0);
     }
-})();
+}
+
+if (require.main === module) {
+    const command = process.argv[2];
+    const targetId = process.argv[3];
+    const typeOrReason = process.argv[4];
+    const reason = process.argv[5];
+
+    (async () => {
+        await handleBlacklistCommand(command, targetId, typeOrReason, reason);
+        await closeDatabase();
+        process.exit(0);
+    })();
+}
+
+module.exports = { handleBlacklistCommand };

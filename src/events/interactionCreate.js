@@ -46,7 +46,7 @@ module.exports = {
 		}
 
 		if (interaction.isChatInputCommand()) {
-			logger.debug(`[Command] User ${interaction.user.username} (${interaction.user.id}) in ${location} executed command: ${interaction.commandName}`);
+			logger.info(`[Command] User ${interaction.user.username} (${interaction.user.id}) in ${location} executed command: ${interaction.commandName}`);
 			const command = interaction.client.commands.get(interaction.commandName);
 
 			if (!command) {

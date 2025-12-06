@@ -29,24 +29,11 @@ function getConfiguredGuildIds() {
     });
 }
 
-const client = new Client({
-    intents: [GatewayIntentBits.Guilds],
-});
-
-async function main() {
-    try {
-        const configuredGuilds = await getConfiguredGuildIds();
-        console.log('ログイン中...');
-        
-        await client.login(process.env.BOT_TOKEN);
-    } catch (error) {
-        console.error('ログインに失敗しました:', error);
-        process.exit(1);
-    }
-}
-
-client.once('ready', async () => {
-    console.log(`ログインしました: ${client.user.tag}`);
+/**
+ * ギルド一覧を表示します。
+ * @param {import('discord.js').Client} client 
+ */
+async function listGuilds(client) {
     console.log(`参加ギルド数: ${client.guilds.cache.size}`);
     console.log('-'.repeat(80));
 
@@ -93,7 +80,23 @@ client.once('ready', async () => {
     });
 
     console.log('\n完了しました。');
-    process.exit(0);
-});
+}
 
-main();
+if (require.main === module) {
+    const client = new Client({
+        intents: [GatewayIntentBits.Guilds],
+    });
+
+    client.once('ready', async () => {
+        console.log(`ログインしました: ${client.user.tag}`);
+        await listGuilds(client);
+        process.exit(0);
+    });
+
+    client.login(process.env.BOT_TOKEN).catch(err => {
+        console.error('ログインに失敗しました:', err);
+        process.exit(1);
+    });
+}
+
+module.exports = { listGuilds };

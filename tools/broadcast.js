@@ -1,27 +1,13 @@
 require('dotenv').config();
 const { Client, GatewayIntentBits } = require('discord.js');
 const { getGuildConfig } = require('../src/database');
-const readline = require('readline');
 
-// Discord Client Setup
-const client = new Client({
-    intents: [GatewayIntentBits.Guilds]
-});
-
-const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-});
-
-const messageToSend = process.argv[2];
-
-if (!messageToSend) {
-    console.log('使用法: node tools/broadcast.js "送信するメッセージ"');
-    process.exit(0);
-}
-
-client.once('ready', async () => {
-    console.log(`Logged in as ${client.user.tag}`);
+/**
+ * 全サーバーにお知らせを送信します。
+ * @param {import('discord.js').Client} client 
+ * @param {string} messageToSend 
+ */
+async function broadcast(client, messageToSend) {
     console.log('アナウンスの送信を開始します...');
 
     const guilds = client.guilds.cache;
@@ -73,9 +59,29 @@ client.once('ready', async () => {
 
     console.log('\n--- 完了 ---');
     console.log(`成功: ${successCount}, スキップ: ${skipCount}, 失敗: ${failCount}`);
-    
-    client.destroy();
-    process.exit(0);
-});
+}
 
-client.login(process.env.BOT_TOKEN);
+if (require.main === module) {
+    const messageToSend = process.argv[2];
+
+    if (!messageToSend) {
+        console.log('使用法: node tools/broadcast.js "送信するメッセージ"');
+        process.exit(0);
+    }
+
+    const client = new Client({
+        intents: [GatewayIntentBits.Guilds]
+    });
+
+    client.once('ready', async () => {
+        console.log(`Logged in as ${client.user.tag}`);
+        await broadcast(client, messageToSend);
+        
+        // スタンドアロン実行時は終了する
+        process.exit(0);
+    });
+
+    client.login(process.env.BOT_TOKEN);
+}
+
+module.exports = { broadcast };

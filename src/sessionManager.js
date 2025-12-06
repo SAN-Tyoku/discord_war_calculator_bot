@@ -157,6 +157,10 @@ async function processApiCalculation(target, session) {
         const response = await calculateWarWithApi(requestBody);
         
         if (typeof response.data === 'object') {
+            // 統計用ログ出力
+            const guildId = target.guildId || target.guild?.id || 'DM';
+            logger.info(`[Usage] Calc Success | User:${session.userId} | Guild:${guildId} | Type:${session.subCommand} | Year:${session.year} | League:${session.league}`);
+
             const statLabels = {
 				'war': 'WAR',
 				'woba': 'wOBA',
