@@ -150,15 +150,7 @@ module.exports = {
                 try {
                     await addFeedback(interaction.user.id, userTag, interaction.guildId, category, content);
                     const config = await getGuildConfig(interaction.guildId);
-                    if (config.feedback_channel_id) {
-                        const targetId = String(config.feedback_channel_id).trim();
-                        let channel = interaction.guild.channels.cache.get(targetId);
-                        if (!channel) {
-                            try { channel = await interaction.guild.channels.fetch(targetId, { force: true }); } catch (err) {}
-                        }
-                        if (!channel) {
-                            try { channel = await interaction.client.channels.fetch(targetId, { force: true }); } catch (err) {}
-                        }
+                    if (config.feedback_channel_id) { // Check if channel was intended to be set
                         if (channel && channel.isTextBased()) {
                             const feedbackEmbed = new EmbedBuilder()
                                 .setColor(0xF1C40F)
@@ -168,9 +160,13 @@ module.exports = {
                                 .setTimestamp()
                                 .setFooter({ text: `User ID: ${interaction.user.id}` });
                             await channel.send({ embeds: [feedbackEmbed] });
+                            await interaction.editReply({ content: 'フィードバックを送信しました。ご協力ありがとうございます！' });
+                        } else {
+                            await interaction.editReply({ content: 'フィードバックを送信しました。ご協力ありがとうございます！\n(設定されているフィードバックチャンネルが見つからないか、テキストチャンネルではないため表示できませんでした。)' });
                         }
+                    } else {
+                        await interaction.editReply({ content: 'フィードバックを送信しました。ご協力ありがとうございます！'});
                     }
-                    await interaction.editReply({ content: 'フィードバックを送信しました。ご協力ありがとうございます！' });
                 } catch (error) {
                     logger.error(`[Feedback] Error: ${error.message}`);
                     await interaction.editReply({ content: 'エラーが発生しました。' });

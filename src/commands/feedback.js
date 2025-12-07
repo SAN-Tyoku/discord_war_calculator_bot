@@ -37,13 +37,13 @@ module.exports = {
 
         const config = await getGuildConfig(interaction.guildId);
         
-        if (!config.feedback_channel_id) {
-            await interaction.reply({
-                content: 'このサーバーではフィードバック機能が有効になっていません。\n管理者が `/config feedback` で受信チャンネルを設定する必要があります。',
-                ephemeral: true 
-            });
-            return;
-        }
+        // if (!config.feedback_channel_id) {
+        //     await interaction.reply({
+        //         content: 'このサーバーではフィードバック機能が有効になっていません。\n管理者が `/config feedback` で受信チャンネルを設定する必要があります。',
+        //         ephemeral: true 
+        //     });
+        //     return;
+        // }
 
         const select = new StringSelectMenuBuilder()
             .setCustomId('feedback_category_select')
