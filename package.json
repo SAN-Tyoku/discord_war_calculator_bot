@@ -1,6 +1,6 @@
 {
   "name": "war-calculator-bot",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "description": "WARを計算するためのDiscordボット",
   "main": "src/Index.js",
   "scripts": {
